@@ -20,8 +20,11 @@ source meta/venv/bin/activate
 # it is important to use the versions specified in the requirements file
 pip install -r requirements.txt
 
-# use manage.py to invoke the commands
-python manage.py --help
+# check the unit tests
+python -m unittest online_cognacy_ident.tests
+
+# use run.py to invoke the commands
+python run.py --help
 ```
 
 
