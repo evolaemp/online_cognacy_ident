@@ -1,8 +1,11 @@
 # use this for own files
-meta/*
+/meta/*
 
 # python temps
 *.py[cod]
 
 # vim temps
 *.swp
+
+# hypothesis cache
+/.hypothesis/*

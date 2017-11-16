@@ -47,15 +47,26 @@ class Dataset:
             print(err)
     """
 
-    def __init__(self, path):
+    def __init__(self, path, dialect=None):
         """
         Set the instance's props. Raise a DatasetError if the given file path
-        does not exist.
+        does not exist. 
+
+        The dialect arg should be either a string identifying one of the csv
+        dialects or None, in which case the dialect is inferred based on the
+        file extension. Raise a ValueError if the given dialect is specified
+        but unrecognised.
         """
         if not os.path.exists(path):
             raise DatasetError('Could not find file: {}'.format(path))
 
+        if dialect is None:
+            dialect = 'excel-tab' if path.endswith('.tsv') else 'excel'
+        elif dialect not in csv.list_dialects():
+            raise ValueError('Unrecognised csv dialect: {!s}'.format(dialect))
+
         self.path = path
+        self.dialect = dialect
 
 
     def _parse_header(self, line):
@@ -85,14 +96,8 @@ class Dataset:
         there is a problem reading the file.
         """
         try:
-            with open(self.path, encoding='utf-8') as f:
-                sniffer = csv.Sniffer()
-
-                dialect = sniffer.sniff(f.read(1024))
-                f.seek(0)
-
-                reader = csv.reader(f, dialect)
-
+            with open(self.path, encoding='utf-8', newline='') as f:
+                reader = csv.reader(f, dialect=self.dialect)
                 header = self._parse_header(next(reader))
 
                 for line in reader:

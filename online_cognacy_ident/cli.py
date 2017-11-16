@@ -1,4 +1,7 @@
 import argparse
+import csv
+
+from .dataset import Dataset
 
 
 
@@ -25,6 +28,11 @@ class Cli:
                 help='which of the two algorithms to use')
         self.parser.add_argument('dataset', help='path to the dataset file')
 
+        self.parser.add_argument('-d', '--dialect', choices=csv.list_dialects(), help=(
+            'the csv dialect to use for reading the dataset; '
+            'the default is to look at the file extension '
+            'and use excel for .csv and excel-tab for .tsv'))
+
 
     def run(self, raw_args=None):
         """
@@ -32,3 +40,6 @@ class Cli:
         which is what you would want unless you are unit testing).
         """
         args = self.parser.parse_args(raw_args)
+
+        dataset = Dataset(args.dataset, args.dialect)
+        [word for word in dataset.get_words()]
