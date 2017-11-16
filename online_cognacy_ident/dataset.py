@@ -1,6 +1,7 @@
 from collections import defaultdict, namedtuple
 
 import csv
+import itertools
 import os.path
 
 
@@ -68,6 +69,8 @@ class Dataset:
         self.path = path
         self.dialect = dialect
 
+        self.alphabet = None
+
 
     def _parse_header(self, line):
         """
@@ -100,7 +103,11 @@ class Dataset:
                 reader = csv.reader(f, dialect=self.dialect)
                 header = self._parse_header(next(reader))
 
+                self.alphabet = set()
+
                 for line in reader:
+                    self.alphabet |= set(line[header['asjp']])
+
                     yield Word._make([
                         line[header['doculect']],
                         line[header['concept']],
@@ -111,6 +118,17 @@ class Dataset:
 
         except csv.Error as err:
             raise DatasetError('Could not read file: {}'.format(self.path))
+
+
+    def get_alphabet(self):
+        """
+        Return a sorted list of all characters found throughout transcriptions
+        in the dataset. Raise a DatasetError if there is a problem.
+        """
+        if self.alphabet is None:
+            self.get_words()
+
+        return sorted(self.alphabet)
 
 
     def get_words(self):
@@ -134,3 +152,16 @@ class Dataset:
             d[word.concept].append(word)
 
         return d
+
+
+    def generate_pairs(self):
+        """
+        Generate pairs of transcriptions of words from different languages but
+        linked to the same concept.
+
+        Raise a DatasetError if there is an error reading the dataset file.
+        """
+        for concept, words in self.get_concepts().items():
+            for word1, word2 in itertools.combinations(words, 2):
+                if word1.doculect != word2.doculect:
+                    yield word1.asjp, word2.asjp
