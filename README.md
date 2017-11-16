@@ -21,10 +21,24 @@ source meta/venv/bin/activate
 pip install -r requirements.txt
 
 # check the unit tests
-python -m unittest online_cognacy_ident.tests
+python -m unittest discover online_cognacy_ident
+```
+
+
+## usage
+
+```bash
+# activate the virtual env if it is not already
+source meta/venv/bin/activate
 
 # use run.py to invoke the commands
 python run.py --help
+
+# run the pair hidden markov model algorithm
+python run.py phmm path/to/dataset.csv
+
+# run the pointwise mutual information algorithm
+python run.py pmi path/to/dataset.csv
 ```
 
 

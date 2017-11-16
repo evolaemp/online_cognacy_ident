@@ -7,7 +7,7 @@ from unittest import TestCase
 from hypothesis.strategies import lists, text, tuples
 from hypothesis import assume, given
 
-from ..dataset import DatasetError, Dataset, Word
+from online_cognacy_ident.dataset import DatasetError, Dataset, Word
 
 
 
