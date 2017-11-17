@@ -3,7 +3,7 @@ import itertools
 
 import numpy as np
 
-from . import phmm as PHMM_Public
+from online_cognacy_ident.phmm.model import PairHiddenMarkov
 
 
 
@@ -113,19 +113,19 @@ def merge(mat1, mat2, run, a):
     return np.multiply(1 - eta, mat1) + np.multiply(eta, mat2)
 
 
-def training_wrapped(data_file):
+def training_wrapped(dataset):
     """
     This function wrapps Batch EM
-    :param data_file: file containing training data
-    :type data_file: str
+    :param dataset: dataset containing training data
+    :type dataset: online_cognacy_ident.dataset.Dataset
     :return: trained parameters, emission matrix, gap x, gap y, Transition
     :rtype: (np.core.ndarray, np.core.ndarray, np.core.ndarray, np.core.ndarray)
     """
-    data, alphabet = read_data(wordpair_file=data_file)
-    wordpairs = create_word_pairs(clusters=concept_clusters(data=data))
+    wordpairs = [pair for pair in dataset.generate_pairs()]
+    alphabet = {char: i for i, char in enumerate(dataset.get_alphabet())}
 
     # create storage for new parameters, include some pseudo counts to facilitate normalization
-    em_store = np.zeros(len(list(alphabet.keys())), len(list(alphabet.keys())))
+    em_store = np.zeros((len(list(alphabet.keys())), len(list(alphabet.keys()))))
     em_store[:] = 0.0001
 
     g_store = np.zeros(len(list(alphabet.keys())))
@@ -134,7 +134,7 @@ def training_wrapped(data_file):
     trans_store = np.array([10.0001, 10.0001, 0.0, 10.0001, 10.0001, 10.0001, 10.0001])
 
     # create initial parameters
-    em_input = np.ones(len(list(alphabet.keys())), len(list(alphabet.keys())))
+    em_input = np.ones((len(list(alphabet.keys())), len(list(alphabet.keys()))))
     em_input /= np.sum(em_input)
 
     gx_input = np.ones(len(list(alphabet.keys())))
@@ -147,15 +147,12 @@ def training_wrapped(data_file):
     trans_input = np.array([0.3, 0.3, 0.0, 0.1, 0.1])
     converged = False
     while converged is False:
-        new_em, new_gx, new_gy, new_trans = PHMM_Public.baum_welch_train(list_of_seq=wordpairs,
-                                                                         em_probs=em_input,
-                                                                         gap_probs_x=gx_input,
-                                                                         gap_probs_y=gy_input,
-                                                                         trans_probs=trans_input,
-                                                                         new_em=em_store,
-                                                                         new_g_probs=g_store,
-                                                                         new_trans=trans_store,
-                                                                         alphabet=alphabet)
+        model = PairHiddenMarkov(em_input, gx_input, gy_input, trans_input)
+        new_em, new_gx, new_gy, new_trans = model.baum_welch_train(list_of_seq=wordpairs,
+                                                                    new_em=em_store,
+                                                                    new_g_probs=g_store,
+                                                                    new_trans=trans_store,
+                                                                    alphabet=alphabet)
 
         results = [np.allclose(em_input, new_em), np.allclose(gx_input, new_gx),
                    np.allclose(gy_input, new_gy), np.allclose(trans_input, new_trans)]
@@ -172,11 +169,11 @@ def training_wrapped(data_file):
     return em_input, gy_input, gy_input, trans_input
 
 
-def training_wrapped_online(data_file, size, alpha):
+def training_wrapped_online(dataset, size, alpha):
     """
     This function wraps the online EM training
-    :param data_file: file containing training data
-    :type data_file: str
+    :param dataset: dataset containing training data
+    :type dataset: online_cognacy_ident.dataset.Dataset
     :param size: chunk size for online EM
     :type size: int
     :param alpha: update strength parameters
@@ -184,12 +181,11 @@ def training_wrapped_online(data_file, size, alpha):
     :return: trained parameters, emission matrix, gap x, gap y, Transition
     :rtype: (np.core.ndarray, np.core.ndarray, np.core.ndarray, np.core.ndarray)
     """
-
-    data, alphabet = read_data(wordpair_file=data_file)
-    wordpairs = create_word_pairs(clusters=concept_clusters(data=data))
+    wordpairs = [pair for pair in dataset.generate_pairs()]
+    alphabet = {char: i for i, char in enumerate(dataset.get_alphabet())}
 
     # create storage for new parameters, include some pseudo counts to facilitate normalization
-    em_store = np.zeros(len(list(alphabet.keys())), len(list(alphabet.keys())))
+    em_store = np.zeros((len(list(alphabet.keys())), len(list(alphabet.keys()))))
     em_store[:] = 0.0001
 
     g_store = np.zeros(len(list(alphabet.keys())))
@@ -198,7 +194,7 @@ def training_wrapped_online(data_file, size, alpha):
     trans_store = np.array([10.0001, 10.0001, 0.0, 10.0001, 10.0001, 10.0001, 10.0001])
 
     # create initial parameters
-    em_input = np.ones(len(list(alphabet.keys())), len(list(alphabet.keys())))
+    em_input = np.ones((len(list(alphabet.keys())), len(list(alphabet.keys()))))
     em_input /= np.sum(em_input)
 
     gx_input = np.ones(len(list(alphabet.keys())))
@@ -224,15 +220,12 @@ def training_wrapped_online(data_file, size, alpha):
         trans_check = trans_input
 
         for chunk in word_pairs:
-            new_em, new_gx, new_gy, new_trans = PHMM_Public.baum_welch_train(list_of_seq=chunk,
-                                                                             em_probs=em_input,
-                                                                             gap_probs_x=gx_input,
-                                                                             gap_probs_y=gy_input,
-                                                                             trans_probs=trans_input,
-                                                                             new_em=em_store,
-                                                                             new_g_probs=g_store,
-                                                                             new_trans=trans_store,
-                                                                             alphabet=alphabet)
+            model = PairHiddenMarkov(em_input, gx_input, gy_input, trans_input)
+            new_em, new_gx, new_gy, new_trans = model.baum_welch_train(list_of_seq=chunk,
+                                                                        new_em=em_store,
+                                                                        new_g_probs=g_store,
+                                                                        new_trans=trans_store,
+                                                                        alphabet=alphabet)
 
             em_input = merge(em_input, new_em, n_o_batches, alpha)
             gx_input = merge(gx_input, new_gx, n_o_batches, alpha)
@@ -248,11 +241,11 @@ def training_wrapped_online(data_file, size, alpha):
     return em_input, gx_input, gy_input, trans_input
 
 
-def alignment_wrapped(data_file, em, gx, gy, trans, equilibrium):
+def alignment_wrapped(dataset, em, gx, gy, trans, equilibrium):
     """
     This function returns the alignment scores of the words in the data file
-    :param data_file: file containing words to be aligned
-    :type data_file: str
+    :param dataset: dataset containing training data
+    :type dataset: online_cognacy_ident.dataset.Dataset
     :param em: emission probabilities
     :type em: np.core.ndarray
     :param gx: gap probabilities for state x
@@ -266,21 +259,14 @@ def alignment_wrapped(data_file, em, gx, gy, trans, equilibrium):
     :return: dictionary of alignment scores
     :rtype: dict
     """
-
-    data, alphabet = read_data(wordpair_file=data_file)
-    wordpairs = create_word_pairs(clusters=concept_clusters(data=data))
+    wordpairs = [pair for pair in dataset.generate_pairs()]
 
     score_dict = collections.defaultdict()
+    model = PairHiddenMarkov(em, gx, gy, trans)
+
     for w1, w2 in wordpairs:
-        v_score = PHMM_Public.viterbi(seq1=w1,
-                                      seq2=w2,
-                                      em_probs=em,
-                                      gap_probs_x=gx,
-                                      gap_probs_y=gy,
-                                      trans_probs=trans)[1]
-        r_score = PHMM_Public.random_model(seq1=w1,
-                                           seq2=w2,
-                                           eq_probs=equilibrium)
+        v_score = model.viterbi(w1, w2)[1]
+        r_score = model.random_model(w1, w2, equilibrium)
         score_dict[(w1, w2)] = v_score / r_score
 
     return score_dict

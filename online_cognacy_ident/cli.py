@@ -1,7 +1,8 @@
 import argparse
 import csv
 
-from .dataset import Dataset
+from online_cognacy_ident.dataset import Dataset
+from online_cognacy_ident.phmm import wrapper
 
 
 
@@ -40,6 +41,10 @@ class Cli:
         which is what you would want unless you are unit testing).
         """
         args = self.parser.parse_args(raw_args)
-
         dataset = Dataset(args.dataset, args.dialect)
-        [word for word in dataset.get_words()]
+
+        if args.algorithm == 'phmm':
+            print(wrapper.training_wrapped(dataset))
+
+        else:
+            pass
