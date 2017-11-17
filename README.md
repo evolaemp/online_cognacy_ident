@@ -41,6 +41,15 @@ python run.py phmm path/to/dataset.csv
 python run.py pmi path/to/dataset.csv
 ```
 
+A dataset should be in csv format. You can specify the csv dialect using the
+`--dialect` option, possible values are `excel`, `excel-tab`, and `unix`. If
+this is omitted, the script will try to guess the dialect by looking at the file
+extension.
+
+A dataset should have a header with at least the following columns: `doculect`
+or `language`, `concept` or `gloss`, and `asjp` or `transcription`. Column name
+detection is case-insensitive.
+
 
 ## license
 
