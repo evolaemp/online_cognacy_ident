@@ -333,49 +333,51 @@ class PairHiddenMarkov(object):
 
         for seq1, seq2 in list_of_seq:
 
-            seq1 = [alphabet[i] for i in seq1]
-            seq2 = [alphabet[i] for i in seq2]
+            if len(seq1) > 0 and len(seq2) > 0:
 
-            fwd_trellis, p = self.forward(seq1, seq2)
+                seq1 = [alphabet[i] for i in seq1]
+                seq2 = [alphabet[i] for i in seq2]
 
-            bwd_trellis = self.backward(seq1, seq2)
+                fwd_trellis, p = self.forward(seq1, seq2)
 
-            inv_p = (1.0 * weight) / p
+                bwd_trellis = self.backward(seq1, seq2)
 
-            for i, j in itertools.product(list(range(len(seq1))), list(range(len(seq2)))):
-                x = seq1[i]
-                y = seq2[j]
+                inv_p = (1.0 * weight) / p
 
-                # temporary variables
-                fw_ij = fwd_trellis[i + 2][j + 2]
-                bw_i1 = bwd_trellis[i + 1]
-                bw_i2 = bwd_trellis[i + 2]
+                for i, j in itertools.product(list(range(len(seq1))), list(range(len(seq2)))):
+                    x = seq1[i]
+                    y = seq2[j]
 
-                new_e_m[(x, y)] += inv_p * fw_ij[0] * bw_i1[j + 1][0]
-                new_e_m[(y, x)] += inv_p * fw_ij[0] * bw_i1[j + 1][0]
-                newgx_probs[x] += inv_p * fw_ij[1] * bw_i1[j + 1][1]
-                newgy_probs[y] += inv_p * fw_ij[2] * bw_i1[j + 1][2]
+                    # temporary variables
+                    fw_ij = fwd_trellis[i + 2][j + 2]
+                    bw_i1 = bwd_trellis[i + 1]
+                    bw_i2 = bwd_trellis[i + 2]
 
-                # calculate new transition probabilities
-                if (i != len(seq1) - 1) and (j != len(seq2) - 1):
-                    y = seq2[j + 1]
-                    x = seq1[i + 1]
+                    new_e_m[(x, y)] += inv_p * fw_ij[0] * bw_i1[j + 1][0]
+                    new_e_m[(y, x)] += inv_p * fw_ij[0] * bw_i1[j + 1][0]
+                    newgx_probs[x] += inv_p * fw_ij[1] * bw_i1[j + 1][1]
+                    newgy_probs[y] += inv_p * fw_ij[2] * bw_i1[j + 1][2]
 
-                    extra_m += inv_p * fw_ij[0] * (1 - 2 * __delta__ - __tau_m__) * e_m[(x, y)] * bw_i2[j + 2][0]
-                    extra_x_y += \
-                        inv_p * fw_ij[1] * (1 - __epsilon__ - __lambd__ - __tau_x_y__) * e_m[(x, y)] * bw_i2[j + 2][0]
+                    # calculate new transition probabilities
+                    if (i != len(seq1) - 1) and (j != len(seq2) - 1):
+                        y = seq2[j + 1]
+                        x = seq1[i + 1]
 
-                elif j != len(seq2) - 1:
-                    y = seq2[j + 1]
-                    new_lambd += inv_p * fw_ij[1] * __lambd__ * g_p_y[y] * bw_i1[j + 2][2]
+                        extra_m += inv_p * fw_ij[0] * (1 - 2 * __delta__ - __tau_m__) * e_m[(x, y)] * bw_i2[j + 2][0]
+                        extra_x_y += \
+                            inv_p * fw_ij[1] * (1 - __epsilon__ - __lambd__ - __tau_x_y__) * e_m[(x, y)] * bw_i2[j + 2][0]
 
-                elif i != len(seq1) - 1:
-                    x = seq1[i + 1]
-                    new_epsilon += inv_p * fw_ij[1] * __epsilon__ * g_p_x[x] * bw_i2[j + 1][1]
-                    new_delta += inv_p * fw_ij[0] * __delta__ * g_p_x[x] * bw_i2[j + 1][1]
+                    elif j != len(seq2) - 1:
+                        y = seq2[j + 1]
+                        new_lambd += inv_p * fw_ij[1] * __lambd__ * g_p_y[y] * bw_i1[j + 2][2]
 
-                new_tau_m += inv_p * fw_ij[0] * __tau_m__ * bw_i1[j + 1][3]
-                new_tau_x_y += inv_p * fw_ij[1] * __tau_x_y__ * bw_i1[j + 1][3]
+                    elif i != len(seq1) - 1:
+                        x = seq1[i + 1]
+                        new_epsilon += inv_p * fw_ij[1] * __epsilon__ * g_p_x[x] * bw_i2[j + 1][1]
+                        new_delta += inv_p * fw_ij[0] * __delta__ * g_p_x[x] * bw_i2[j + 1][1]
+
+                    new_tau_m += inv_p * fw_ij[0] * __tau_m__ * bw_i1[j + 1][3]
+                    new_tau_x_y += inv_p * fw_ij[1] * __tau_x_y__ * bw_i1[j + 1][3]
 
         trans_count = np.array([new_delta, new_epsilon, new_lambd, new_tau_m, new_tau_x_y, extra_m, extra_x_y])
 
