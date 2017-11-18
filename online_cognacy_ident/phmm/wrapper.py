@@ -191,7 +191,7 @@ def training_wrapped_online(dataset, size, alpha):
     g_store = np.zeros(len(list(alphabet.keys())))
     g_store[:] = 0.0001
 
-    trans_store = np.array([10.0001, 10.0001, 0.0, 10.0001, 10.0001, 10.0001, 10.0001])
+    trans_store = np.array([10.0001, 10.0001, 10.0001, 10.0001, 10.0001, 10.0001, 10.0001])
 
     # create initial parameters
     em_input = np.ones((len(list(alphabet.keys())), len(list(alphabet.keys()))))
