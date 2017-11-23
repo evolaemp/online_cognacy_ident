@@ -3,6 +3,7 @@ import csv
 
 from online_cognacy_ident.dataset import Dataset
 from online_cognacy_ident.phmm import wrapper
+from online_cognacy_ident.pmi import train
 
 
 
@@ -47,4 +48,4 @@ class Cli:
             print(wrapper.training_wrapped(dataset))
 
         else:
-            pass
+            print(train(dataset))
