@@ -6,6 +6,35 @@ import numpy as np
 
 
 
+def normalized_leventsthein(a, b):
+    """
+    Leventsthein distance normalized
+    :param a: word
+    :type a: str
+    :param b: word
+    :type b: str
+    :return: distance score
+    :rtype: float
+    """
+    m = [];
+    la = len(a) + 1;
+    lb = len(b) + 1
+    for i in range(0, la):
+        m.append([])
+        for j in range(0, lb): m[i].append(0)
+        m[i][0] = i
+    for i in range(0, lb): m[0][i] = i
+    for i in range(1, la):
+        for j in range(1, lb):
+            s = m[i - 1][j - 1]
+            if (a[i - 1] != b[j - 1]): s = s + 1
+            m[i][j] = min(m[i][j - 1] + 1, m[i - 1][j] + 1, s)
+    la = la - 1;
+    lb = lb - 1
+    return float(m[la][lb])/ float(max(la, lb))
+
+
+
 def needleman_wunsch(x, y, lodict={}, gop=-2.5, gep=-1.75, local=False, indel=''):
     """Needleman-Wunsch algorithm with affine gaps penalties.
 
@@ -164,7 +193,9 @@ class OnlinePMITrainer:
 def train(dataset, alpha=0.75, margin=1.0, max_iter=15, max_batch=256):
     """
     """
-    word_pairs = [pair for pair in dataset.generate_pairs()]
+    word_pairs = [pair for pair in dataset.generate_pairs()
+        if normalized_leventsthein(pair[0], pair[1]) <= 0.5]
+
     online = OnlinePMITrainer(alpha=alpha, margin=margin)
 
     print("Calculating PMIs from very similar words.")
