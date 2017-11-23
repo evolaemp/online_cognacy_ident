@@ -1,9 +1,10 @@
 import argparse
 import csv
 
+from online_cognacy_ident.clustering import cognate_code_infomap2
 from online_cognacy_ident.dataset import Dataset
 from online_cognacy_ident.phmm import wrapper
-from online_cognacy_ident.pmi import train
+from online_cognacy_ident.pmi import train as train_pmi
 
 
 
@@ -48,4 +49,6 @@ class Cli:
             print(wrapper.training_wrapped(dataset))
 
         else:
-            print(train(dataset))
+            pmidict = train_pmi(dataset)
+            clusters = cognate_code_infomap2(dataset.get_concepts(), pmidict)
+            [print(cluster) for cluster in clusters]

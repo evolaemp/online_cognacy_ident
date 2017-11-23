@@ -1,7 +1,6 @@
 import itertools
 
 import igraph
-
 import numpy as np
 
 from online_cognacy_ident.pmi import needleman_wunsch
@@ -81,21 +80,21 @@ def cognate_code_infomap2(d, lodict={}, gop=-2.5, gep=-1.75,
     Returns: A list of sets of (language, concept, form) triples.
     """
     codes = []
-    for concept, forms_by_language in d.items():
+    for concept, lookup in d.items():
         # Calculate the Needleman-Wunsch distance for every pair of
         # forms.
-        lookup = []
-        for language, forms in forms_by_language.items():
-            for form in forms:
-                lookup.append((concept, language, form))
+        # lookup = []
+        # for language, forms in forms_by_language.items():
+        #     for form in forms:
+        #         lookup.append((concept, language, form))
         if len(lookup) <= 1:
             continue
         #print(lookup)
         distmat = np.zeros((len(lookup), len(lookup)))
-        for (i1, (c1, l1, w1)), (i2, (c2, l2, w2)) in itertools.combinations(
+        for (i1, word1), (i2, word2) in itertools.combinations(
                 enumerate(lookup), r=2):
             score, align = needleman_wunsch(
-                w1, w2, lodict=lodict, gop=gop, gep=gep)
+                word1.asjp, word2.asjp, lodict=lodict, gop=gop, gep=gep)
             distmat[i2, i1] = distmat[i1, i2] = 1 - (1/(1 + np.exp(-score)))
             #print(w1, w2, score)
 

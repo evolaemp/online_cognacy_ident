@@ -215,3 +215,5 @@ def train(dataset, alpha=0.75, margin=1.0, max_iter=15, max_batch=256):
         print("Non zero examples went down to {:d} (-{:d}). Updates: {:d}".format(
             len(word_pairs), n_zero, online.n_updates))
         print(collections.Counter(online.pmidict).most_common(8)[::2])
+
+    return online.pmidict
