@@ -14,7 +14,8 @@ possible variants. Used in Dataset._parse_header().
 RECOGNISED_COLUMN_NAMES = {
     'doculect': ['doculect', 'language', 'lang'],
     'concept': ['concept', 'gloss'],
-    'asjp': ['asjp', 'transcription']
+    'asjp': ['asjp', 'transcription'],
+    'cog_class': ['cog_class', 'cognate_class']
 }
 
 
@@ -73,46 +74,61 @@ class Dataset:
         self.alphabet = None
 
 
-    def _parse_header(self, line):
+    def _parse_header(self, line, exclude=['cog_class']):
         """
-        Return a {name: number} dict. Raise a DatasetError if not all columns
-        can be recovered.
+        Return a {column name: index} dict, excluding the columns listed in the
+        second func arg.
+
+        Raise a DatasetError if not all required columns can be recovered.
         """
         d = {}
 
+        column_names = {column: names
+                for column, names in RECOGNISED_COLUMN_NAMES.items()
+                if column not in exclude}
+
         for index, heading in enumerate(line):
             heading = heading.lower()
-            for column, recognised_names in RECOGNISED_COLUMN_NAMES.items():
+            for column, recognised_names in column_names.items():
                 if heading in recognised_names:
                     d[column] = index
                     break
 
-        for column in RECOGNISED_COLUMN_NAMES.keys():
+        for column in column_names.keys():
             if column not in d:
                 raise DatasetError('Could not find the column for {}'.format(column))
 
         return d
 
 
-    def _read_words(self):
+    def _read_words(self, cog_sets=False):
         """
         Generate the [] of Word entries in the dataset. Raise a DatasetError if
         there is a problem reading the file.
+
+        If the cog_sets flag is set, then yield (Word, cognate class) tuples.
         """
         try:
             with open(self.path, encoding='utf-8', newline='') as f:
                 reader = csv.reader(f, dialect=self.dialect)
-                header = self._parse_header(next(reader))
+
+                header = self._parse_header(next(reader),
+                        exclude=[] if cog_sets else ['cog_class'])
 
                 self.alphabet = set()
 
                 for line in reader:
                     self.alphabet |= set(line[header['asjp']])
 
-                    yield Word._make([
+                    word = Word._make([
                         line[header['doculect']],
                         line[header['concept']],
                         line[header['asjp']] ])
+
+                    if cog_sets:
+                        yield word, line[header['cog_class']]
+                    else:
+                        yield word
 
         except OSError as err:
             raise DatasetError('Could not open file: {}'.format(self.path))
@@ -168,6 +184,27 @@ class Dataset:
                     yield word1.asjp, word2.asjp
 
 
+    def get_clusters(self):
+        """
+        Return a {concept: cog_sets} dict where the values are frozen sets of
+        frozen sets of Word named tuples, comprising the set of cognate sets
+        for that concept.
+
+        Raise a DatasetError if the dataset does not include cognacy info or if
+        there is a probelm reading the file.
+        """
+        d = defaultdict(set)  # {(concept, cog_class): set([word, ..])}
+        clusters = defaultdict(list)  # {concept: [frozenset([word, ..]), ..]}
+
+        for word, cog_class in self._read_words(cog_sets=True):
+            d[(word.concept, cog_class)].add(word)
+
+        for (concept, cog_class), cog_set in d.items():
+            clusters[concept].append(frozenset(cog_set))
+
+        return {key: frozenset(value) for key, value in clusters.items()}
+
+
 
 def write_clusters(clusters, path=None, dialect='excel-tab'):
     """
@@ -175,8 +212,8 @@ def write_clusters(clusters, path=None, dialect='excel-tab'):
     transcription, cog_class. The latter comprises automatically generated id
     strings of the type concept:number.
 
-    The clusters arg should be a dict mapping concepts to lists of sets of Word
-    named tuples.
+    The clusters arg should be a dict mapping concepts to frozen sets of frozen
+    sets of Word named tuples.
 
     If path is None, use stdout. Raise a DatasetError if the file/stdout cannot
     be written into.
