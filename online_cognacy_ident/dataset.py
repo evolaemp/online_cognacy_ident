@@ -3,6 +3,7 @@ from collections import defaultdict, namedtuple
 import csv
 import itertools
 import os.path
+import sys
 
 
 
@@ -165,3 +166,38 @@ class Dataset:
             for word1, word2 in itertools.combinations(words, 2):
                 if word1.doculect != word2.doculect:
                     yield word1.asjp, word2.asjp
+
+
+
+def write_clusters(clusters, path=None, dialect='excel-tab'):
+    """
+    Write cognate set clusters to a csv file with columns: concept, doculect,
+    transcription, cog_class. The latter comprises automatically generated id
+    strings of the type concept:number.
+
+    The clusters arg should be a dict mapping concepts to lists of sets of Word
+    named tuples.
+
+    If path is None, use stdout. Raise a DatasetError if the file/stdout cannot
+    be written into.
+    """
+    if path:
+        try:
+            f = open(path, 'w', encoding='utf-8', newline='')
+        except OSError as err:
+            raise DatasetError('Could not open file: {}'.format(path))
+    else:
+        f = sys.stdout
+
+    writer = csv.writer(f, dialect=dialect)
+    writer.writerow(['concept', 'doculect', 'transcription', 'cog_class'])
+
+    for concept, cog_sets in sorted(clusters.items()):
+        for index, cog_set in enumerate(cog_sets):
+            for word in sorted(cog_set):
+                writer.writerow([
+                    word.concept, word.doculect, word.asjp,
+                    '{}:{!s}'.format(concept, index)])
+
+    if path:
+        f.close()

@@ -1,13 +1,37 @@
+import collections
 import csv
 import os.path
 import tempfile
 
 from unittest import TestCase
 
-from hypothesis.strategies import lists, text, tuples
+from hypothesis.strategies import composite, integers, lists, sets, text, tuples
 from hypothesis import assume, given
 
-from online_cognacy_ident.dataset import DatasetError, Dataset, Word
+from online_cognacy_ident.dataset import DatasetError, Dataset, Word, write_clusters
+
+
+
+@composite
+def clusters(draw):
+    clusters = {}
+
+    concepts = draw(sets(text(max_size=10)))
+    langs = draw(sets(text(max_size=3)))
+
+    for concept in concepts:
+        cog_sets = collections.defaultdict(set)
+
+        for lang in langs:
+            asjp = draw(text(max_size=5))
+            cog_class = draw(integers(min_value=0, max_value=5))
+            word = Word._make([lang, concept, asjp])
+            cog_sets[cog_class].add(word)
+
+        clusters[concept] = [cog_set
+            for cog_set in cog_sets.values() if cog_set]
+
+    return clusters
 
 
 
@@ -51,3 +75,11 @@ class DatasetTestCase(TestCase):
                 words = dataset.get_words()
 
                 self.assertEqual(words, [Word._make(i) for i in data])
+
+    @given(clusters())
+    def test_write_clusters(self, clusters):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = os.path.join(temp_dir, 'dataset.tsv')
+
+            write_clusters(clusters, path)
+            self.assertTrue(os.path.exists(path))

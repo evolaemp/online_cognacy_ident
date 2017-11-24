@@ -1,3 +1,4 @@
+import collections
 import itertools
 
 import igraph
@@ -104,4 +105,10 @@ def cognate_code_infomap2(d, lodict={}, gop=-2.5, gep=-1.75,
         for entry, group in clust.items():
             similaritygroups.setdefault(group, set()).add(lookup[entry])
         codes += list(similaritygroups.values())
-    return codes
+
+    clusters = collections.defaultdict(list)
+    for cog_set in codes:
+        concept = list(cog_set)[0].concept
+        clusters[concept].append(cog_set)
+
+    return clusters
