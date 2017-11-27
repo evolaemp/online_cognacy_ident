@@ -1,46 +1,17 @@
-import collections
-
 import numpy as np
 
 
 
-def compare_cognate_codings(true_cogid_dict, other_cogid_dict):
-    """Compare two different cognate codings of the same data by F scores.
-
-    Calculate the F-scores of how well two cognate codings match each other.
+def calc_b_cubed(true_labels, labels):
     """
-    f_scores = []
-    # n_clusters = 0
-    for concept, forms_by_language in true_cogid_dict.items():
-        langs = list(forms_by_language.keys())
+    Calculate the B-cubed (precision, recall, F-score) of a list of cognate set
+    labels against the gold-standard version of the same list.
 
-        predl, truel = [], []
-        for l in langs:
-            truel.append(true_cogid_dict[concept][l])
-            predl.append(other_cogid_dict[concept][l])
-        scores = b_cubed(truel, predl)
-
-        #scores = metrics.f1_score(truel, predl, average="micro")
-        print(concept, len(langs), scores, len(set(truel)), "\n")
-        f_scores.append(list(scores))
-        # n_clusters += len(set(clust.values()))
-        #t = utils.dict2binarynexus(predicted_labels, ex_langs, lang_list)
-        #print(concept, "\n",t)
-        #print("No. of clusters ", n_clusters)
-    #print(np.mean(np.array(f_scores), axis=0))
-    f_scores = np.mean(np.array(f_scores), axis=0)
-    print(f_scores[0], f_scores[1], 2.0*f_scores[0]*f_scores[1]/(f_scores[0]+f_scores[1]))
-    return f_scores
-
-
-
-def b_cubed(true_labels, labels):
-    d = collections.defaultdict()
+    This function is a (just slightly) modified version of the b_cubed function
+    of PhyloStar's CogDetect library.
+    """
     precision = [0.0]*len(true_labels)
     recall = [0.0]*len(true_labels)
-
-    for t, l in zip(true_labels, labels):
-        d[str(l)] = t
 
     for i, l in enumerate(labels):
         match = 0.0
@@ -57,8 +28,54 @@ def b_cubed(true_labels, labels):
                     recall_denom += 1.0
         precision[i] = match/prec_denom
         recall[i] = match/recall_denom
-    #print precision, recall
+
     avg_precision = np.average(precision)
     avg_recall = np.average(recall)
     avg_f_score = 2.0*avg_precision*avg_recall/(avg_precision+avg_recall)
-    return avg_precision, avg_recall,avg_f_score
+
+    return avg_precision, avg_recall, avg_f_score
+
+
+
+def calc_f_score(true_clusters, pred_clusters):
+    """
+    Calculate the B-cubed F-score of a dataset's cognate sets against their
+    gold-standard. This is the metric used to evaluate the performance of the
+    cognate identification algorithms.
+
+    Both args should be dicts mapping concepts to frozen sets of frozen sets of
+    Word named tuples. The first comprises the gold-standard clustering and the
+    second comprises the inferred one.
+
+    It is assumed that both clusterings comprise the same data and that there
+    is at most one word per concept per doculect. An AssertionError is raised
+    if these assumptions do not hold true.
+    """
+    f_scores = []
+
+    for concept in true_clusters.keys():
+        assert concept in pred_clusters
+
+        true_labels = {}
+        pred_labels = {}
+
+        for index, cog_set in enumerate(true_clusters[concept]):
+            label = 'true:{}'.format(index)
+            for word in cog_set:
+                assert word.doculect not in true_labels
+                true_labels[word.doculect] = label
+
+        for index, cog_set in enumerate(pred_clusters[concept]):
+            label = 'pred:{}'.format(index)
+            for word in cog_set:
+                assert word.doculect not in pred_labels
+                pred_labels[word.doculect] = label
+
+        assert set(true_labels.keys()) == set(pred_labels.keys())
+
+        true_labels = [label for _, label in sorted(true_labels.items())]
+        pred_labels = [label for _, label in sorted(pred_labels.items())]
+
+        f_scores.append(calc_b_cubed(true_labels, pred_labels)[-1])
+
+    return np.mean(f_scores)
