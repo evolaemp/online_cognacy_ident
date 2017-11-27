@@ -41,7 +41,7 @@ def calc_f_score(true_clusters, pred_clusters):
     """
     Calculate the B-cubed F-score of a dataset's cognate sets against their
     gold-standard. This is the metric used to evaluate the performance of the
-    cognate identification algorithms.
+    cognacy identification algorithms.
 
     Both args should be dicts mapping concepts to frozen sets of frozen sets of
     Word named tuples. The first comprises the gold-standard clustering and the
@@ -54,7 +54,7 @@ def calc_f_score(true_clusters, pred_clusters):
     f_scores = []
 
     for concept in true_clusters.keys():
-        assert concept in pred_clusters
+        assert concept in pred_clusters, str(concept)
 
         true_labels = {}
         pred_labels = {}
@@ -62,16 +62,16 @@ def calc_f_score(true_clusters, pred_clusters):
         for index, cog_set in enumerate(true_clusters[concept]):
             label = 'true:{}'.format(index)
             for word in cog_set:
-                assert word.doculect not in true_labels
+                assert word.doculect not in true_labels, str(word)
                 true_labels[word.doculect] = label
 
         for index, cog_set in enumerate(pred_clusters[concept]):
             label = 'pred:{}'.format(index)
             for word in cog_set:
-                assert word.doculect not in pred_labels
+                assert word.doculect not in pred_labels, str(word)
                 pred_labels[word.doculect] = label
 
-        assert set(true_labels.keys()) == set(pred_labels.keys())
+        assert set(true_labels.keys()) == set(pred_labels.keys()), str(concept)
 
         true_labels = [label for _, label in sorted(true_labels.items())]
         pred_labels = [label for _, label in sorted(pred_labels.items())]

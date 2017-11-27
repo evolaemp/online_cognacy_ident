@@ -1,5 +1,5 @@
-from online_cognacy_ident.cli import Cli
+from online_cognacy_ident.cli import RunCli
 
 
 if __name__ == '__main__':
-    Cli().run()
+    RunCli().run()
