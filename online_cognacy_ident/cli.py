@@ -55,7 +55,7 @@ class RunCli:
                 help='which of the two algorithms to use')
         self.parser.add_argument('dataset', help='path to the dataset file')
 
-        self.parser.add_argument('-d', '--dialect', choices=csv.list_dialects(), help=(
+        self.parser.add_argument('--dialect-input', choices=csv.list_dialects(), help=(
             'the csv dialect to use for reading the dataset; '
             'the default is to look at the file extension '
             'and use excel for .csv and excel-tab for .tsv'))
@@ -77,6 +77,15 @@ class RunCli:
         self.parser.add_argument('-o', '--output', help=(
             'path where to write the identified cognate classes; '
             'defaults to stdout'))
+        self.parser.add_argument('--dialect-output',
+            choices=csv.list_dialects(), default='excel-tab', help=(
+                'the csv dialect to use for writing the output; '
+                'the default is excel-tab'))
+
+        self.parser.add_argument('-e', '--evaluate', action='store_true', help=(
+            'evaluate the output against the input dataset and '
+            'print the resulting F-score; this will fail '
+            'if the input dataset does not include cognate classes'))
 
 
     def run(self, raw_args=None):
@@ -89,7 +98,7 @@ class RunCli:
         random.seed(args.random_seed)
 
         try:
-            dataset = Dataset(args.dataset, args.dialect)
+            dataset = Dataset(args.dataset, args.dialect_input)
         except DatasetError as err:
             self.parser.error(str(err))
 
@@ -99,7 +108,11 @@ class RunCli:
         else:
             pmidict = train_pmi(dataset, alpha=args.alpha, max_batch=args.batch_size)
             clusters = cognate_code_infomap2(dataset.get_concepts(), pmidict)
-            write_clusters(clusters, args.output)
+            write_clusters(clusters, args.output, args.dialect_output)
+
+            if args.evaluate:
+                score = calc_f_score(dataset.get_clusters(), clusters)
+                print('{:.4f}'.format(score))
 
 
 
@@ -128,13 +141,13 @@ class EvalCli:
         self.parser.add_argument('dataset_pred', help=(
             'path to the dataset containing the predicted cognate classes'))
 
-        self.parser.add_argument('-dt', '--dialect-true',
+        self.parser.add_argument('--dialect-true',
             choices=csv.list_dialects(), help=(
                 'the csv dialect to use for reading the dataset '
                 'that contains the gold-standard cognate classes; '
                 'the default is to look at the file extension '
                 'and use excel for .csv and excel-tab for .tsv'))
-        self.parser.add_argument('-dp', '--dialect-pred',
+        self.parser.add_argument('--dialect-pred',
             choices=csv.list_dialects(), help=(
                 'the csv dialect to use for reading the dataset '
                 'that contains the predicted cognate classes; '
@@ -145,7 +158,8 @@ class EvalCli:
     def run(self, raw_args=None):
         """
         Parse the given args (if these are None, default to parsing sys.argv,
-        which is what you would want unless you are unit testing).
+        which is what you would want unless you are unit testing), invoke the
+        evaluation function and print its output.
         """
         args = self.parser.parse_args(raw_args)
 
@@ -156,4 +170,4 @@ class EvalCli:
             self.parser.error(str(err))
 
         score = calc_f_score(dataset_true.get_clusters(), dataset_pred.get_clusters())
-        print('{!s}'.format(score))
+        print('{:.4f}'.format(score))

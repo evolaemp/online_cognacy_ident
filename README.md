@@ -35,10 +35,13 @@ source meta/venv/bin/activate
 python run.py --help
 
 # run the pair hidden markov model algorithm
-python run.py phmm path/to/dataset.csv
+python run.py phmm path/to/dataset.tsv -o output.tsv
 
 # run the pointwise mutual information algorithm
-python run.py pmi path/to/dataset.csv
+python run.py pmi path/to/dataset.tsv -o output.tsv
+
+# evaluate the output
+python eval.py path/to/dataset.tsv output.tsv
 ```
 
 A dataset should be in csv format. You can specify the csv dialect using the
