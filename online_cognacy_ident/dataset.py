@@ -150,22 +150,35 @@ class Dataset:
 
     def get_words(self):
         """
-        Return the [] of Word named tuple entries comprising the dataset. Raise
-        a DatasetError if there is an error reading the file.
+        Return the [] of Word named tuples comprising the dataset, excluding
+        in-doculect synonyms; i.e. the output should include at most one word
+        per doculect per concept.
+
+        Raise a DatasetError if there is an error reading the file.
         """
-        return [word for word in self._read_words()]
+        words = []
+        seen = set()
+
+        for word in self._read_words():
+            key = (word.doculect, word.concept,)
+            if key not in seen:
+                seen.add(key)
+                words.append(word)
+
+        return words
 
 
     def get_concepts(self):
         """
         Return a {concept: words} dict mapping each concept in the dataset to a
-        [] of Word entries that belong to that concept.
+        [] of Word tuples that belong to that concept. In-doculect synonyms are
+        excluded.
 
         Raise a DatasetError if there is an error reading the dataset file.
         """
         d = defaultdict(list)
 
-        for word in self._read_words():
+        for word in self.get_words():
             d[word.concept].append(word)
 
         return d
@@ -187,17 +200,20 @@ class Dataset:
     def get_clusters(self):
         """
         Return a {concept: cog_sets} dict where the values are frozen sets of
-        frozen sets of Word named tuples, comprising the set of cognate sets
-        for that concept.
+        frozen sets of Word tuples, comprising the set of cognate sets for that
+        concept. In-doculect synonyms are excluded.
 
         Raise a DatasetError if the dataset does not include cognacy info or if
         there is a probelm reading the file.
         """
-        d = defaultdict(set)  # {(concept, cog_class): set([word, ..])}
-        clusters = defaultdict(list)  # {concept: [frozenset([word, ..]), ..]}
+        d = defaultdict(set)  # {(concept, cog_class): set of words}
+        seen = set()  # set of (doculect, concept) tuples
+        clusters = defaultdict(list)  # {concept: [frozenset of words, ..]}
 
         for word, cog_class in self._read_words(cog_sets=True):
-            d[(word.concept, cog_class)].add(word)
+            if (word.doculect, word.concept) not in seen:
+                seen.add((word.doculect, word.concept))
+                d[(word.concept, cog_class)].add(word)
 
         for (concept, cog_class), cog_set in d.items():
             clusters[concept].append(frozenset(cog_set))
