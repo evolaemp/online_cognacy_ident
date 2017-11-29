@@ -4,15 +4,12 @@ import itertools
 import igraph
 import numpy as np
 
-# from online_cognacy_ident.pmi import needleman_wunsch
-
 
 
 def igraph_clustering(matrix, threshold, method='labelprop'):
     """
     Method computes Infomap clusters from pairwise distance data.
     """
-
     G = igraph.Graph()
     vertex_weights = []
     for i in range(len(matrix)):
@@ -66,51 +63,33 @@ def igraph_clustering(matrix, threshold, method='labelprop'):
 
 
 
-def cognate_code_infomap2(d, scores, gop=-2.5, gep=-1.75,
-                          threshold=0.5, method='labelprop'):
-    """Cluster cognates automatically.
-
-    Calculate Needleman-Wunsch distances between forms and cluster
-    them into cognate classes using the Infomap algorithm.
-
-    d: A dict-like mapping concepts to a map from languages to forms
-
-    lodict: A similarity matrix, a dict mapping pairs of characters to
-    similarity scores
-
-    Returns: A list of sets of (language, concept, form) triples.
+def cluster(dataset, scores, threshold=0.5, method='labelprop'):
     """
-    codes = []
-    for concept, lookup in d.items():
-        # Calculate the Needleman-Wunsch distance for every pair of
-        # forms.
-        # lookup = []
-        # for language, forms in forms_by_language.items():
-        #     for form in forms:
-        #         lookup.append((concept, language, form))
-        if len(lookup) <= 1:
-            continue
-        #print(lookup)
-        distmat = np.zeros((len(lookup), len(lookup)))
-        for (i1, word1), (i2, word2) in itertools.combinations(
-                enumerate(lookup), r=2):
-            # score, align = needleman_wunsch(
-            #     word1.asjp, word2.asjp, lodict=scores, gop=gop, gep=gep)
-            # distmat[i2, i1] = distmat[i1, i2] = 1 - (1/(1 + np.exp(-score)))
+    Cluster the dataset's synonymous words into cognate sets based on distance
+    scores between each pair of words. Return a dict mapping concepts to frozen
+    sets of frozen sets of Word tuples.
+
+    The second arg should be a {(word1, word2): distance} dict where the keys
+    are sorted Word named tuples tuples. The keyword args are passed on to the
+    InfoMap algorithm.
+    """
+    clusters = {}
+
+    for concept, words in dataset.get_concepts().items():
+        if len(words) <= 1: continue
+
+        matrix = np.zeros((len(words), len(words),))
+
+        for (i, word1), (j, word2) in itertools.combinations(enumerate(words), 2):
             key = (word1, word2) if word1 < word2 else (word2, word1)
-            distmat[i2, i1] = distmat[i1, i2] = scores[key]
-            #print(w1, w2, score)
+            matrix[j, i] = matrix[i, j] = scores[key]
 
-        clust = igraph_clustering(distmat, threshold, method=method)
+        index_labels = igraph_clustering(matrix, threshold, method)
 
-        similaritygroups = {}
-        for entry, group in clust.items():
-            similaritygroups.setdefault(group, set()).add(lookup[entry])
-        codes += list(similaritygroups.values())
+        cog_sets = collections.defaultdict(set)
+        for index, label in index_labels.items():
+            cog_sets[label].add(words[index])
 
-    clusters = collections.defaultdict(list)
-    for cog_set in codes:
-        concept = list(cog_set)[0].concept
-        clusters[concept].append(cog_set)
+        clusters[concept] = frozenset([frozenset(s) for s in cog_sets.values()])
 
     return clusters

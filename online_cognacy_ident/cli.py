@@ -2,7 +2,7 @@ import argparse
 import csv
 import random
 
-from online_cognacy_ident.clustering import cognate_code_infomap2
+from online_cognacy_ident.clustering import cluster
 from online_cognacy_ident.dataset import Dataset, DatasetError, write_clusters
 from online_cognacy_ident.evaluation import calc_f_score
 from online_cognacy_ident.phmm import wrapper
@@ -104,11 +104,10 @@ class RunCli:
 
         if args.algorithm == 'phmm':
             print(wrapper.training_wrapped(dataset))
-
         else:
             scores = run_pmi(dataset, alpha=args.alpha, max_batch=args.batch_size)
 
-        clusters = cognate_code_infomap2(dataset.get_concepts(), scores)
+        clusters = cluster(dataset, scores)
         write_clusters(clusters, args.output, args.dialect_output)
 
         if args.evaluate:
