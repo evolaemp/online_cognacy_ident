@@ -4,7 +4,7 @@ import itertools
 import igraph
 import numpy as np
 
-from online_cognacy_ident.pmi import needleman_wunsch
+# from online_cognacy_ident.pmi import needleman_wunsch
 
 
 
@@ -66,7 +66,7 @@ def igraph_clustering(matrix, threshold, method='labelprop'):
 
 
 
-def cognate_code_infomap2(d, lodict={}, gop=-2.5, gep=-1.75,
+def cognate_code_infomap2(d, scores, gop=-2.5, gep=-1.75,
                           threshold=0.5, method='labelprop'):
     """Cluster cognates automatically.
 
@@ -94,9 +94,11 @@ def cognate_code_infomap2(d, lodict={}, gop=-2.5, gep=-1.75,
         distmat = np.zeros((len(lookup), len(lookup)))
         for (i1, word1), (i2, word2) in itertools.combinations(
                 enumerate(lookup), r=2):
-            score, align = needleman_wunsch(
-                word1.asjp, word2.asjp, lodict=lodict, gop=gop, gep=gep)
-            distmat[i2, i1] = distmat[i1, i2] = 1 - (1/(1 + np.exp(-score)))
+            # score, align = needleman_wunsch(
+            #     word1.asjp, word2.asjp, lodict=scores, gop=gop, gep=gep)
+            # distmat[i2, i1] = distmat[i1, i2] = 1 - (1/(1 + np.exp(-score)))
+            key = (word1, word2) if word1 < word2 else (word2, word1)
+            distmat[i2, i1] = distmat[i1, i2] = scores[key]
             #print(w1, w2, score)
 
         clust = igraph_clustering(distmat, threshold, method=method)

@@ -190,30 +190,39 @@ class OnlinePMITrainer:
 
 
 
-def train(dataset, alpha=0.75, margin=1.0, max_iter=15, max_batch=256):
+def run_pmi(dataset, alpha=0.75, margin=1.0, max_iter=15, max_batch=256):
     """
+    Run the PMI cognacy identification algorithm on a dataset.Dataset instance.
+    Return a {(word, word): distance} dict mapping the dataset's word pairs to
+    distance scores, the latter being in the range [0; 1].
+
+    The keyword args comprise the algorithm parameters.
     """
     word_pairs = [pair for pair in dataset.generate_pairs()
         if normalized_leventsthein(pair[0], pair[1]) <= 0.5]
 
     online = OnlinePMITrainer(alpha=alpha, margin=margin)
 
-    print("Calculating PMIs from very similar words.")
     for n_iter in range(0, max_iter):
         random.shuffle(word_pairs)
-        print("Iteration", n_iter)
-        idx = 0
-        n_zero = 0
-        while idx < len(word_pairs):
-            #print("Mini Batch", idx)
-            wl = word_pairs[idx:idx+max_batch]
-            algn_list, z = online.align_pairs(wl)
-            n_zero += z
-            word_pairs[idx:idx+max_batch] = wl
-            idx += len(wl)
 
-        print("Non zero examples went down to {:d} (-{:d}). Updates: {:d}".format(
-            len(word_pairs), n_zero, online.n_updates))
-        print(collections.Counter(online.pmidict).most_common(8)[::2])
+        index = 0
+        while index < len(word_pairs):
+            batch = word_pairs[index:index+max_batch]
+            online.align_pairs(batch)
+            word_pairs[index:index+max_batch] = batch
+            index += len(batch)
 
-    return online.pmidict
+        print('iteration {!s} (total updates: {!s})'.format(n_iter, online.n_updates))
+
+    scores = {}
+
+    for concept, words in dataset.get_concepts().items():
+        for word1, word2 in itertools.combinations(words, 2):
+            score, _ = needleman_wunsch(word1.asjp, word2.asjp, online.pmidict)
+            score = 1 - (1/(1 + np.exp(-score)))
+
+            key = (word1, word2) if word1 < word2 else (word2, word1)
+            scores[key] = score
+
+    return scores

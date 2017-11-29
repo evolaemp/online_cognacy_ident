@@ -6,7 +6,7 @@ from online_cognacy_ident.clustering import cognate_code_infomap2
 from online_cognacy_ident.dataset import Dataset, DatasetError, write_clusters
 from online_cognacy_ident.evaluation import calc_f_score
 from online_cognacy_ident.phmm import wrapper
-from online_cognacy_ident.pmi import train as train_pmi
+from online_cognacy_ident.pmi import run_pmi
 
 
 
@@ -106,13 +106,14 @@ class RunCli:
             print(wrapper.training_wrapped(dataset))
 
         else:
-            pmidict = train_pmi(dataset, alpha=args.alpha, max_batch=args.batch_size)
-            clusters = cognate_code_infomap2(dataset.get_concepts(), pmidict)
-            write_clusters(clusters, args.output, args.dialect_output)
+            scores = run_pmi(dataset, alpha=args.alpha, max_batch=args.batch_size)
 
-            if args.evaluate:
-                score = calc_f_score(dataset.get_clusters(), clusters)
-                print('{:.4f}'.format(score))
+        clusters = cognate_code_infomap2(dataset.get_concepts(), scores)
+        write_clusters(clusters, args.output, args.dialect_output)
+
+        if args.evaluate:
+            score = calc_f_score(dataset.get_clusters(), clusters)
+            print('{:.4f}'.format(score))
 
 
 

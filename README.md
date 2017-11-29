@@ -31,6 +31,9 @@ python -m unittest discover online_cognacy_ident
 # activate the virtual env if it is not already
 source meta/venv/bin/activate
 
+# ensure the reproducibility of the results
+export PYTHONHASHSEED=42
+
 # use run.py to invoke the commands
 python run.py --help
 
