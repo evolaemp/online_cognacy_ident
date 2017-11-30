@@ -169,13 +169,16 @@ def training_wrapped(dataset):
     return em_input, gy_input, gy_input, trans_input
 
 
-def training_wrapped_online(dataset, size, alpha, rt=0.0001, at=0.000001):
+def training_wrapped_online(dataset, size, alpha, rt=0.0001, at=0.000001, con_check = False):
     """
     This function wraps the online EM training
-    :param rt:
-    :type rt:
-    :param at:
-    :type at:
+    :param con_check: Check convergence thorugh change in model likelihood if set to False. Use similarity in parameters
+     otherwise. If set to True, convergence tends to be slower.
+    :type con_check: bool
+    :param rt: relative tolerance
+    :type rt: float
+    :param at: absolute tolreance
+    :type at: float
     :param dataset: dataset containing training data
     :type dataset: online_cognacy_ident.dataset.Dataset
     :param size: chunk size for online EM
@@ -212,7 +215,8 @@ def training_wrapped_online(dataset, size, alpha, rt=0.0001, at=0.000001):
 
     n_o_batches = 0.0
     converged = False
-
+    run = 0
+    ll = 0
     while converged is False:
 
         np.random.shuffle(wordpairs)
@@ -239,13 +243,55 @@ def training_wrapped_online(dataset, size, alpha, rt=0.0001, at=0.000001):
 
             n_o_batches += 1
 
-        results = [np.allclose(em_check, em_input, rtol=rt, atol=at), np.allclose(gx_check, gx_input, rtol=rt, atol=at),
-                   np.allclose(gy_check, gy_input, rtol=rt, atol=at), np.allclose(trans_check, trans_input, rtol=rt, atol=at)]
+        if con_check:
 
-        if False not in results:
-            converged = True
+            results = [np.allclose(em_check, em_input, rtol=rt, atol=at), np.allclose(gx_check, gx_input, rtol=rt, atol=at),
+                       np.allclose(gy_check, gy_input, rtol=rt, atol=at), np.allclose(trans_check, trans_input, rtol=rt, atol=at)]
+            if False not in results:
+                converged = True
+        else:
 
+            if run > 0:
+                llold = ll
+                ll = model_ll(wordpairs, em_input, gx_input, gy_input, trans_input, alphabet)
+                if np.abs(llold-ll) < at:
+                    converged = True
+            else:
+                ll = model_ll(wordpairs, em_input, gx_input, gy_input, trans_input, alphabet)
+
+        run += 1
     return em_input, gx_input, gy_input, trans_input
+
+
+def model_ll(wordpairs, em, gx, gy, tr, alph):
+    """
+    calculate model likelihood of phmm using the forward algorithm
+    :param wordpairs: list of wordpairs
+    :type wordpairs: list
+    :param em: Probabilities of sound correspondence, order as in alphabet
+    :type em: np.core.ndarray
+    :param gx: Probabilities of gaps in Seq1, order as in alphabet
+    :type gx: np.core.ndarray
+    :param gy: Probabilities of gaps in seq2, order as in alphabet
+    :type gy: np.core.ndarray
+    :param tr: Probabilities of state Transitions; order: delta, epsilon, lambda, tauM, tauXY
+    :type tr: np.core.ndarray
+    :param alph: All Symbols which are used (dictionary with sound symbols as keys and index of this sound)
+    :type alph: dict
+    :return:
+    :rtype:
+    """
+    sc = 0.0
+    ct = 0.0
+    model = PairHiddenMarkov(em, gx, gy, tr)
+    for seq1, seq2 in wordpairs:
+        if len(seq1) > 0 and len(seq2) > 0:
+            seq1 = [alph[i] for i in seq1]
+            seq2 = [alph[i] for i in seq2]
+            sc += model.forward(seq1, seq2)[1]
+            ct += 1
+    return sc/ct
+
 
 
 def alignment_wrapped(dataset, em, gx, gy, trans, equilibrium):
