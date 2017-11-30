@@ -4,7 +4,7 @@ import random
 
 import numpy as np
 
-from online_cognacy_ident.align import normalized_leventsthein, needleman_wunsch
+from online_cognacy_ident.align import needleman_wunsch
 
 
 
@@ -92,7 +92,7 @@ class OnlinePMITrainer:
 
 
 
-def run_pmi(dataset, alpha=0.75, margin=1.0, max_iter=15, max_batch=256):
+def run_pmi(dataset, initial_cutoff=0.5, alpha=0.75, margin=1.0, max_iter=15, batch_size=256):
     """
     Run the PMI cognacy identification algorithm on a dataset.Dataset instance.
     Return a {(word, word): distance} dict mapping the dataset's word pairs to
@@ -100,8 +100,7 @@ def run_pmi(dataset, alpha=0.75, margin=1.0, max_iter=15, max_batch=256):
 
     The keyword args comprise the algorithm parameters.
     """
-    word_pairs = [pair for pair in dataset.generate_pairs()
-        if normalized_leventsthein(pair[0], pair[1]) <= 0.5]
+    word_pairs = list(dataset.generate_pairs(initial_cutoff))
 
     online = OnlinePMITrainer(alpha=alpha, margin=margin)
 
@@ -110,9 +109,9 @@ def run_pmi(dataset, alpha=0.75, margin=1.0, max_iter=15, max_batch=256):
 
         index = 0
         while index < len(word_pairs):
-            batch = word_pairs[index:index+max_batch]
+            batch = word_pairs[index:index+batch_size]
             online.align_pairs(batch)
-            word_pairs[index:index+max_batch] = batch
+            word_pairs[index:index+batch_size] = batch
             index += len(batch)
 
         print('iteration {!s} (total updates: {!s})'.format(n_iter, online.n_updates))

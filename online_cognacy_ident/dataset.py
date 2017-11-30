@@ -5,7 +5,7 @@ import itertools
 import os.path
 import sys
 
-from online_cognacy_ident.align import normalized_leventsthein
+from online_cognacy_ident.align import normalized_levenshtein
 
 
 
@@ -185,18 +185,23 @@ class Dataset:
 
         return d
 
-    def generate_pairs(self, cutoff=0.5):
+    def generate_pairs(self, cutoff=1.0):
         """
         Generate pairs of transcriptions of words from different languages but
-        linked to the same concept.
+        linked to the same concept. If the keyword arg is less than 1.0, pairs
+        with edit distance above that threshold are also ignored.
 
         Raise a DatasetError if there is an error reading the dataset file.
         """
         for concept, words in self.get_concepts().items():
             for word1, word2 in itertools.combinations(words, 2):
-                if word1.doculect != word2.doculect:
-                    if normalized_leventsthein(word1.asjp, word2.asjp) < cutoff:
-                        yield word1.asjp, word2.asjp
+                if word1.doculect == word2.doculect:
+                    continue
+
+                if normalized_levenshtein(word1.asjp, word2.asjp) > cutoff:
+                    continue
+
+                yield word1.asjp, word2.asjp
 
 
     def get_clusters(self):

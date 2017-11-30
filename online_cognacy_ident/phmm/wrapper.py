@@ -169,7 +169,7 @@ def training_wrapped(dataset):
     return em_input, gy_input, gy_input, trans_input
 
 
-def training_wrapped_online(dataset, size, alpha, rt=0.0001, at=0.000001, con_check = False):
+def training_wrapped_online(dataset, size, alpha, rt=0.0001, at=0.000001, con_check=False, initial_cutoff=0.5):
     """
     This function wraps the online EM training
     :param con_check: Check convergence thorugh change in model likelihood if set to False. Use similarity in parameters
@@ -185,10 +185,12 @@ def training_wrapped_online(dataset, size, alpha, rt=0.0001, at=0.000001, con_ch
     :type size: int
     :param alpha: update strength parameters
     :type alpha: float
+    :param initial_cutoff: initial Levenshtein distance cutoff
+    :type initial_cutoff: float
     :return: trained parameters, emission matrix, gap x, gap y, Transition
     :rtype: (np.core.ndarray, np.core.ndarray, np.core.ndarray, np.core.ndarray)
     """
-    wordpairs = [pair for pair in dataset.generate_pairs()]
+    wordpairs = list(dataset.generate_pairs(initial_cutoff))
     alphabet = {char: i for i, char in enumerate(dataset.get_alphabet())}
 
     # create storage for new parameters, include some pseudo counts to facilitate normalization
@@ -326,13 +328,14 @@ def alignment_wrapped(dataset, em, gx, gy, trans, equilibrium):
 
 
 
-def run_phmm(dataset, alpha=0.75, batch_size=256):
+def run_phmm(dataset, initial_cutoff=0.5, alpha=0.75, batch_size=256):
     """
     Run the PHMM cognacy identification algorithm on a Dataset instance. Return
     a {(word, word): distance} dict mapping the dataset's synonymous word pairs
     to distance scores, the latter being in the range [0; 1].
 
-    The keyword args comprise the online EM parameters.
+    The keyword args comprise the algorithm parameters.
     """
-    em, gx, gy, trans = training_wrapped_online(dataset, batch_size, alpha)
+    em, gx, gy, trans = training_wrapped_online(dataset,
+                            batch_size, alpha, initial_cutoff=initial_cutoff)
     return alignment_wrapped(dataset, em, gx, gy, trans)

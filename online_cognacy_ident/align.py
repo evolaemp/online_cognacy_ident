@@ -9,9 +9,9 @@ import numpy as np
 
 
 
-def normalized_leventsthein(a, b):
+def normalized_levenshtein(a, b):
     """
-    Leventshtein distance normalized
+    Levenshtein distance normalized
     :param a: word
     :type a: str
     :param b: word

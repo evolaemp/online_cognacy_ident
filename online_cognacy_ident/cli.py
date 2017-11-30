@@ -57,6 +57,13 @@ class RunCli:
         self.parser.add_argument('dataset', help='path to the dataset file')
 
         algo_args = self.parser.add_argument_group('optional arguments - algorithm')
+        algo_args.add_argument('-c', '--initial-cutoff',
+            type=lambda x: number_in_interval(x, float, [0, 1]),
+            default=0.5, help=(
+                'initial Levenshtein distance cutoff; '
+                'should be within the interval [0.0; 1.0]; '
+                'word pairs with normalised edit distance '
+                'above this threshold are ignored'))
         algo_args.add_argument('-a', '--alpha',
             type=lambda x: number_in_interval(x, float, [0.5, 1]),
             default=0.75, help=(
@@ -109,9 +116,11 @@ class RunCli:
             self.parser.error(str(err))
 
         if args.algorithm == 'phmm':
-            scores = run_phmm(dataset, alpha=args.alpha, batch_size=args.batch_size)
+            scores = run_phmm(dataset, initial_cutoff=args.initial_cutoff,
+                                alpha=args.alpha, batch_size=args.batch_size)
         else:
-            scores = run_pmi(dataset, alpha=args.alpha, max_batch=args.batch_size)
+            scores = run_pmi(dataset, initial_cutoff=args.initial_cutoff,
+                                alpha=args.alpha, batch_size=args.batch_size)
 
         clusters = cluster(dataset, scores)
         write_clusters(clusters, args.output, args.dialect_output)
