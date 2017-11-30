@@ -169,9 +169,13 @@ def training_wrapped(dataset):
     return em_input, gy_input, gy_input, trans_input
 
 
-def training_wrapped_online(dataset, size, alpha):
+def training_wrapped_online(dataset, size, alpha, rt=0.0001, at=0.000001):
     """
     This function wraps the online EM training
+    :param rt:
+    :type rt:
+    :param at:
+    :type at:
     :param dataset: dataset containing training data
     :type dataset: online_cognacy_ident.dataset.Dataset
     :param size: chunk size for online EM
@@ -220,6 +224,7 @@ def training_wrapped_online(dataset, size, alpha):
         trans_check = trans_input
 
         for chunk in word_pairs:
+
             model = PairHiddenMarkov(em_input, gx_input, gy_input, trans_input)
             new_em, new_gx, new_gy, new_trans = model.baum_welch_train(list_of_seq=chunk,
                                                                         new_em=em_store,
@@ -232,8 +237,10 @@ def training_wrapped_online(dataset, size, alpha):
             gy_input = merge(gy_input, new_gy, n_o_batches, alpha)
             trans_input = merge(trans_input, new_trans, n_o_batches, alpha)
 
-        results = [np.allclose(em_check, em_input), np.allclose(gx_check, gx_input),
-                   np.allclose(gy_check, gy_input), np.allclose(trans_check, trans_input)]
+            n_o_batches += 1
+
+        results = [np.allclose(em_check, em_input, rtol=rt, atol=at), np.allclose(gx_check, gx_input, rtol=rt, atol=at),
+                   np.allclose(gy_check, gy_input, rtol=rt, atol=at), np.allclose(trans_check, trans_input, rtol=rt, atol=at)]
 
         if False not in results:
             converged = True

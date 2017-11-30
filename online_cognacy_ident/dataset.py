@@ -183,8 +183,35 @@ class Dataset:
 
         return d
 
+    def ldn(self, w1, w2):
+        """
+        COPIED THIS FUNCTION FROM PMI SCRIPT.
+        Leventsthein distance normalized
+        :param a: word
+        :type a: str
+        :param b: word
+        :type b: str
+        :return: distance score
+        :rtype: float
+        """
+        m = [];
+        la = len(w1) + 1;
+        lb = len(w2) + 1
+        for i in range(0, la):
+            m.append([])
+            for j in range(0, lb): m[i].append(0)
+            m[i][0] = i
+        for i in range(0, lb): m[0][i] = i
+        for i in range(1, la):
+            for j in range(1, lb):
+                s = m[i - 1][j - 1]
+                if (w1[i - 1] != w2[j - 1]): s = s + 1
+                m[i][j] = min(m[i][j - 1] + 1, m[i - 1][j] + 1, s)
+        la = la - 1;
+        lb = lb - 1
+        return float(m[la][lb]) / float(max(la, lb))
 
-    def generate_pairs(self):
+    def generate_pairs(self, cutoff=0.5):
         """
         Generate pairs of transcriptions of words from different languages but
         linked to the same concept.
@@ -194,7 +221,8 @@ class Dataset:
         for concept, words in self.get_concepts().items():
             for word1, word2 in itertools.combinations(words, 2):
                 if word1.doculect != word2.doculect:
-                    yield word1.asjp, word2.asjp
+                    if self.ldn(word1.asjp, word2.asjp) < cutoff:
+                        yield word1.asjp, word2.asjp
 
 
     def get_clusters(self):

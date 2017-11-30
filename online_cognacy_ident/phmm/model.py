@@ -389,7 +389,7 @@ class PairHiddenMarkov(object):
         trans_count = self.normalize_transition(trans_count)
 
         return new_e_m, newgx_probs, newgy_probs, trans_count
-    
+
     def normalize_transition(self, trans):
         """
         Normalize the transition values
