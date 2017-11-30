@@ -270,3 +270,16 @@ def alignment_wrapped(dataset, em, gx, gy, trans, equilibrium):
         score_dict[(w1, w2)] = v_score / r_score
 
     return score_dict
+
+
+
+def run_phmm(dataset, alpha=0.75, batch_size=256):
+    """
+    Run the PHMM cognacy identification algorithm on a Dataset instance. Return
+    a {(word, word): distance} dict mapping the dataset's synonymous word pairs
+    to distance scores, the latter being in the range [0; 1].
+
+    The keyword args comprise the online EM parameters.
+    """
+    em, gx, gy, trans = training_wrapped_online(dataset, batch_size, alpha)
+    return alignment_wrapped(dataset, em, gx, gy, trans)

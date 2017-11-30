@@ -5,7 +5,7 @@ import random
 from online_cognacy_ident.clustering import cluster
 from online_cognacy_ident.dataset import Dataset, DatasetError, write_clusters
 from online_cognacy_ident.evaluation import calc_f_score
-from online_cognacy_ident.phmm import wrapper
+from online_cognacy_ident.phmm import run_phmm
 from online_cognacy_ident.pmi import run_pmi
 
 
@@ -103,7 +103,7 @@ class RunCli:
             self.parser.error(str(err))
 
         if args.algorithm == 'phmm':
-            print(wrapper.training_wrapped(dataset))
+            scores = run_phmm(dataset, alpha=args.alpha, batch_size=args.batch_size)
         else:
             scores = run_pmi(dataset, alpha=args.alpha, max_batch=args.batch_size)
 

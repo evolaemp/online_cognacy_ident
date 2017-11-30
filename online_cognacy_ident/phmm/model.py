@@ -386,8 +386,10 @@ class PairHiddenMarkov(object):
         newgx_probs /= np.sum(newgx_probs)
         newgy_probs /= np.sum(newgy_probs)
 
-        m_norm = trans_count[[0, 3, 5]] * np.array([2, 1, 1])
-        x_norm = trans_count[[1, 2, 4, 6]]
-        trans_count /= np.array([m_norm, x_norm, x_norm, m_norm, x_norm])
+        # m_norm = trans_count[[0, 3, 5]] * np.array([2, 1, 1])
+        # x_norm = trans_count[[1, 2, 4, 6]]
+        # trans_count /= np.array([m_norm, x_norm, x_norm, m_norm, x_norm])
+        trans_count = trans_count[:5]
+        trans_count /= np.sum(trans_count)
 
         return new_e_m, newgx_probs, newgy_probs, trans_count
