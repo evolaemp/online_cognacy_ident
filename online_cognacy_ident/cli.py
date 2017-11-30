@@ -1,6 +1,7 @@
 import argparse
 import csv
 import random
+import time
 
 from online_cognacy_ident.clustering import cluster
 from online_cognacy_ident.dataset import Dataset, DatasetError, write_clusters
@@ -96,6 +97,7 @@ class RunCli:
         args = self.parser.parse_args(raw_args)
 
         random.seed(args.random_seed)
+        start_time = time.time()
 
         try:
             dataset = Dataset(args.dataset, args.dialect_input)
@@ -110,9 +112,11 @@ class RunCli:
         clusters = cluster(dataset, scores)
         write_clusters(clusters, args.output, args.dialect_output)
 
+        print('time elapsed: {:.2f} sec'.format(time.time() - start_time))
+
         if args.evaluate:
             score = calc_f_score(dataset.get_clusters(), clusters)
-            print('{:.4f}'.format(score))
+            print('f-score: {:.4f}'.format(score))
 
 
 
