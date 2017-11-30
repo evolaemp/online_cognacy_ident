@@ -1,10 +1,10 @@
 from unittest import TestCase
 
-from online_cognacy_ident.pmi import needleman_wunsch
+from online_cognacy_ident.align import needleman_wunsch
 
 
 
-class HelpersTestCase(TestCase):
+class AlignTestCase(TestCase):
 
     def test_needleman_wunsch(self):
         self.assertEqual(needleman_wunsch("AAAAABBBB", "AACAABBCB"),
