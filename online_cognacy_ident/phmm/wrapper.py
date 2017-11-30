@@ -313,8 +313,6 @@ def alignment_wrapped(dataset, em, gx, gy, trans, alphabet):
     :return: dictionary of alignment scores
     :rtype: dict
     """
-    wordpairs = [pair for pair in dataset.generate_pairs()]
-
     score_dict = collections.defaultdict()
     model = PairHiddenMarkov(em, gx, gy, trans)
     equi = dataset.get_equilibrium()
@@ -322,12 +320,15 @@ def alignment_wrapped(dataset, em, gx, gy, trans, alphabet):
     for k, v in alphabet.items():
         eq[v] = equi[k]
     eq /= sum(eq)
-    for w1, w2 in wordpairs:
-        s1 = [alphabet[i] for i in w1]
-        s2 = [alphabet[i] for i in w2]
-        v_score = model.viterbi(s1, s2)[1]
-        r_score = model.random_model(s1, s2, eq)
-        score_dict[(w1, w2)] = v_score / r_score
+
+    for concept, words in dataset.get_concepts().items():
+        for word1, word2 in itertools.combinations(words, 2):
+            s1 = [alphabet[i] for i in word1.asjp]
+            s2 = [alphabet[i] for i in word2.asjp]
+            v_score = model.viterbi(s1, s2)[1]
+            r_score = model.random_model(s1, s2, eq)
+            key = (word1, word2) if word1 < word2 else (word2, word1)
+            score_dict[key] = v_score / r_score
 
     return score_dict
 

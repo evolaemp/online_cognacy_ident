@@ -141,6 +141,7 @@ class Dataset:
         except csv.Error as err:
             raise DatasetError('Could not read file: {}'.format(self.path))
 
+
     def get_equilibrium(self):
         """
         Return un-normalized equilibrium counts
@@ -149,6 +150,7 @@ class Dataset:
             self.get_words()
 
         return self.equilibrium
+
 
     def get_alphabet(self):
         """
