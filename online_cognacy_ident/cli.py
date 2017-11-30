@@ -48,7 +48,7 @@ class RunCli:
         """
         Init the argparse parser.
         """
-        self.parser = argparse.ArgumentParser(description=(
+        self.parser = argparse.ArgumentParser(add_help=False, description=(
             'run the pmi or phmm online cognacy identification algorithm '
             'on the specified dataset'))
 
@@ -56,34 +56,38 @@ class RunCli:
                 help='which of the two algorithms to use')
         self.parser.add_argument('dataset', help='path to the dataset file')
 
-        self.parser.add_argument('--dialect-input', choices=csv.list_dialects(), help=(
-            'the csv dialect to use for reading the dataset; '
-            'the default is to look at the file extension '
-            'and use excel for .csv and excel-tab for .tsv'))
-        self.parser.add_argument('-r', '--random-seed', type=int, default=42, help=(
-            'integer to use as seed for python\'s random module; '
-            'the default value is 42'))
-
-        self.parser.add_argument('-a', '--alpha',
+        algo_args = self.parser.add_argument_group('optional arguments - algorithm')
+        algo_args.add_argument('-a', '--alpha',
             type=lambda x: number_in_interval(x, float, [0.5, 1]),
             default=0.75, help=(
                 'α, EM hyperparameter; should be within the interval [0.5; 1]; '
                 'the default value is 0.75'))
-        self.parser.add_argument('-m', '--batch-size',
+        algo_args.add_argument('-m', '--batch-size',
             type=lambda x: number_in_interval(x, int, [1, float('inf')]),
             default=256, help=(
                 'm, EM hyperparameter; should be a positive integer; '
                 'the default value is 256'))
+        algo_args.add_argument('-r', '--random-seed', type=int, default=42, help=(
+            'integer to use as seed for python\'s random module; '
+            'the default value is 42'))
 
-        self.parser.add_argument('-o', '--output', help=(
-            'path where to write the identified cognate classes; '
-            'defaults to stdout'))
-        self.parser.add_argument('--dialect-output',
+        io_args = self.parser.add_argument_group('optional arguments - input/output')
+        io_args.add_argument('--dialect-input', choices=csv.list_dialects(), help=(
+            'the csv dialect to use for reading the dataset; '
+            'the default is to look at the file extension '
+            'and use excel for .csv and excel-tab for .tsv'))
+        io_args.add_argument('--dialect-output',
             choices=csv.list_dialects(), default='excel-tab', help=(
                 'the csv dialect to use for writing the output; '
                 'the default is excel-tab'))
+        io_args.add_argument('-o', '--output', help=(
+            'path where to write the identified cognate classes; '
+            'defaults to stdout'))
 
-        self.parser.add_argument('-e', '--evaluate', action='store_true', help=(
+        other_args = self.parser.add_argument_group('optional arguments - other')
+        other_args.add_argument('-h', '--help', action='help', help=(
+            'show this help message and exit'))
+        other_args.add_argument('-e', '--evaluate', action='store_true', help=(
             'evaluate the output against the input dataset and '
             'print the resulting F-score; this will fail '
             'if the input dataset does not include cognate classes'))
@@ -136,7 +140,7 @@ class EvalCli:
         """
         Init the argparse parser.
         """
-        self.parser = argparse.ArgumentParser(description=(
+        self.parser = argparse.ArgumentParser(add_help=False, description=(
             'evaluate the cognates clustering of a dataset '
             'against the same data\'s gold-standard cognate classes'))
 
@@ -145,18 +149,23 @@ class EvalCli:
         self.parser.add_argument('dataset_pred', help=(
             'path to the dataset containing the predicted cognate classes'))
 
-        self.parser.add_argument('--dialect-true',
+        csv_args = self.parser.add_argument_group('optional arguments - csv')
+        csv_args.add_argument('--dialect-true',
             choices=csv.list_dialects(), help=(
                 'the csv dialect to use for reading the dataset '
                 'that contains the gold-standard cognate classes; '
                 'the default is to look at the file extension '
                 'and use excel for .csv and excel-tab for .tsv'))
-        self.parser.add_argument('--dialect-pred',
+        csv_args.add_argument('--dialect-pred',
             choices=csv.list_dialects(), help=(
                 'the csv dialect to use for reading the dataset '
                 'that contains the predicted cognate classes; '
                 'the default is to look at the file extension '
                 'and use excel for .csv and excel-tab for .tsv'))
+
+        other_args = self.parser.add_argument_group('optional arguments - other')
+        other_args.add_argument('-h', '--help', action='help', help=(
+            'show this help message and exit'))
 
 
     def run(self, raw_args=None):
