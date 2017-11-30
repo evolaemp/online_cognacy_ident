@@ -1,3 +1,4 @@
+import collections
 from collections import defaultdict, namedtuple
 
 import csv
@@ -116,10 +117,12 @@ class Dataset:
                         exclude=[] if cog_sets else ['cog_class'])
 
                 self.alphabet = set()
-
+                self.equilibrium = collections.defaultdict(float)
                 for line in reader:
-                    self.alphabet |= set(line[header['asjp']])
-
+                    temp = line[header['asjp']]
+                    self.alphabet |= set(temp)
+                    for i in temp:
+                        self.equilibrium[i] += 1.0
                     word = Word._make([
                         line[header['doculect']],
                         line[header['concept']],
@@ -136,6 +139,14 @@ class Dataset:
         except csv.Error as err:
             raise DatasetError('Could not read file: {}'.format(self.path))
 
+    def get_equilibrium(self):
+        """
+        Return un-normalized equilibrium counts
+        """
+        if self.equilibrium is None:
+            self.get_words()
+
+        return self.equilibrium
 
     def get_alphabet(self):
         """
