@@ -386,10 +386,20 @@ class PairHiddenMarkov(object):
         newgx_probs /= np.sum(newgx_probs)
         newgy_probs /= np.sum(newgy_probs)
 
-        m_norm = sum(trans_count[[0, 3, 5]] * np.array([2, 1, 1]))
-        x_norm = sum(trans_count[[1, 2, 4, 6]])
-        trans_count /= np.array([m_norm, x_norm, x_norm, m_norm, x_norm, 1.0, 1.0])
-        trans_count = trans_count[:5]
-        trans_count /= np.sum(trans_count)
+        trans_count = self.normalize_transition(trans_count)
 
         return new_e_m, newgx_probs, newgy_probs, trans_count
+    
+    def normalize_transition(self, trans):
+        """
+        Normalize the transition values
+        :param trans: count of transitions according to Baum-Welch transition
+        :type trans: np.core.ndarray
+        :return: Normalized, i.e. outgoing transitions sum to 1
+        :rtype: np.core.ndarray
+        """
+        mfac = np.array([2, 0, 0, 1, 0, 1, 0])
+        xfac = np.array([0, 1, 1, 0, 1, 0, 1])
+        m_norm = np.sum(trans * mfac)
+        x_norm = np.sum(trans * xfac)
+        return trans[:5]/np.array([m_norm, x_norm, x_norm, m_norm, x_norm])
