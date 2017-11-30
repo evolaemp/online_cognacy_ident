@@ -169,7 +169,7 @@ def training_wrapped(dataset):
     return em_input, gy_input, gy_input, trans_input
 
 
-def training_wrapped_online(dataset, size, alpha, rt=0.0001, at=0.000001, con_check=False, initial_cutoff=0.5):
+def training_wrapped_online(dataset, size, alpha, alphabet, rt=0.0001, at=0.000001, con_check=False, initial_cutoff=0.5):
     """
     This function wraps the online EM training
     :param con_check: Check convergence thorugh change in model likelihood if set to False. Use similarity in parameters
@@ -191,7 +191,6 @@ def training_wrapped_online(dataset, size, alpha, rt=0.0001, at=0.000001, con_ch
     :rtype: (np.core.ndarray, np.core.ndarray, np.core.ndarray, np.core.ndarray)
     """
     wordpairs = list(dataset.generate_pairs(initial_cutoff))
-    alphabet = {char: i for i, char in enumerate(dataset.get_alphabet())}
 
     # create storage for new parameters, include some pseudo counts to facilitate normalization
     em_store = np.zeros((len(list(alphabet.keys())), len(list(alphabet.keys()))))
@@ -296,7 +295,7 @@ def model_ll(wordpairs, em, gx, gy, tr, alph):
 
 
 
-def alignment_wrapped(dataset, em, gx, gy, trans, equilibrium):
+def alignment_wrapped(dataset, em, gx, gy, trans, alphabet):
     """
     This function returns the alignment scores of the words in the data file
     :param dataset: dataset containing training data
@@ -318,10 +317,16 @@ def alignment_wrapped(dataset, em, gx, gy, trans, equilibrium):
 
     score_dict = collections.defaultdict()
     model = PairHiddenMarkov(em, gx, gy, trans)
-
+    equi = dataset.get_equilibrium()
+    eq = np.zeros(len(alphabet))
+    for k, v in alphabet.items():
+        eq[v] = equi[k]
+    eq /= sum(eq)
     for w1, w2 in wordpairs:
-        v_score = model.viterbi(w1, w2)[1]
-        r_score = model.random_model(w1, w2, equilibrium)
+        s1 = [alphabet[i] for i in w1]
+        s2 = [alphabet[i] for i in w2]
+        v_score = model.viterbi(s1, s2)[1]
+        r_score = model.random_model(s1, s2, eq)
         score_dict[(w1, w2)] = v_score / r_score
 
     return score_dict
@@ -336,6 +341,7 @@ def run_phmm(dataset, initial_cutoff=0.5, alpha=0.75, batch_size=256):
 
     The keyword args comprise the algorithm parameters.
     """
-    em, gx, gy, trans = training_wrapped_online(dataset,
-                            batch_size, alpha, initial_cutoff=initial_cutoff)
-    return alignment_wrapped(dataset, em, gx, gy, trans)
+    alphabet = {char: i for i, char in enumerate(dataset.get_alphabet())}
+    em, gx, gy, trans = training_wrapped_online(dataset, batch_size,
+                            alpha, alphabet, initial_cutoff=initial_cutoff)
+    return alignment_wrapped(dataset, em, gx, gy, trans, alphabet)
