@@ -9,6 +9,7 @@ from unittest import TestCase
 from hypothesis.strategies import composite, integers, lists, sets, text
 from hypothesis import assume, given
 
+from online_cognacy_ident.asjp import ASJP_SYMBOLS
 from online_cognacy_ident.dataset import DatasetError, Dataset, Word, write_clusters
 
 
@@ -20,13 +21,12 @@ def clusters(draw):
     concepts = draw(sets(text(max_size=10), min_size=1))
     langs = draw(sets(text(max_size=3), min_size=1))
 
-    num_words = len(concepts) * len(langs)
-    asjp = draw(lists(text(max_size=5),
-            min_size=num_words, max_size=num_words))
-
     assume(all(['\0' not in s for s in concepts]))
     assume(all(['\0' not in s for s in langs]))
-    assume(all(['\0' not in s for s in asjp]))
+
+    num_words = len(concepts) * len(langs)
+    asjp = draw(lists(text(alphabet=ASJP_SYMBOLS, max_size=5),
+            min_size=num_words, max_size=num_words))
 
     counter = itertools.count()
 

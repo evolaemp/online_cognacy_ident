@@ -1,4 +1,3 @@
-import collections
 from collections import defaultdict, namedtuple
 
 import csv
@@ -7,6 +6,7 @@ import os.path
 import sys
 
 from online_cognacy_ident.align import normalized_levenshtein
+from online_cognacy_ident.asjp import clean_asjp
 
 
 
@@ -119,16 +119,18 @@ class Dataset:
                         exclude=[] if cog_sets else ['cog_class'])
 
                 self.alphabet = set()
-                self.equilibrium = collections.defaultdict(float)
+                self.equilibrium = defaultdict(float)
                 for line in reader:
-                    temp = line[header['asjp']]
-                    self.alphabet |= set(temp)
-                    for i in temp:
+                    asjp = clean_asjp(line[header['asjp']])
+
+                    self.alphabet |= set(asjp)
+                    for i in asjp:
                         self.equilibrium[i] += 1.0
+
                     word = Word._make([
                         line[header['doculect']],
                         line[header['concept']],
-                        line[header['asjp']] ])
+                        asjp ])
 
                     if cog_sets:
                         yield word, line[header['cog_class']]
@@ -197,6 +199,7 @@ class Dataset:
             d[word.concept].append(word)
 
         return d
+
 
     def generate_pairs(self, cutoff=1.0):
         """
