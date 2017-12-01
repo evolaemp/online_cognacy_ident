@@ -6,9 +6,13 @@ import numpy as np
 
 
 
-def igraph_clustering(matrix, threshold, method='labelprop'):
+def igraph_clustering(matrix, threshold, method='infomap'):
     """
-    Method computes Infomap clusters from pairwise distance data.
+    Wrapper around several of igraph's community structure finding algorithm
+    implementations, most notably InfoMap.
+
+    This is originally taken from and builds on LingPy's infomap_clustering
+    function.
     """
     G = igraph.Graph()
     vertex_weights = []
@@ -63,7 +67,7 @@ def igraph_clustering(matrix, threshold, method='labelprop'):
 
 
 
-def cluster(dataset, scores, threshold=0.5, method='labelprop'):
+def cluster(dataset, scores, threshold=0.5, method='infomap'):
     """
     Cluster the dataset's synonymous words into cognate sets based on distance
     scores between each pair of words. Return a dict mapping concepts to frozen

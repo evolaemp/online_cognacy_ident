@@ -9,11 +9,14 @@ from online_cognacy_ident.align import needleman_wunsch
 
 
 def calc_pmi(alignments, scores=None):
-    """Calculate a pointwise mutual information dictionary from alignments.
+    """
+    Calculate a pointwise mutual information dictionary from alignments.
 
-    Given a sequence of pairwaise alignments and their relative
-    weights, calculate the logarithmic pairwise mutual information
-    encoded for the character pairs in the alignments.
+    Given a sequence of pairwise alignments and their relative weights,
+    calculate the logarithmic pairwise mutual information encoded for the
+    character pairs in the alignments.
+
+    This function is sourced from PhyloStar's CogDetect library.
     """
     if scores is None:
         scores = itertools.cycle([1])
@@ -48,15 +51,19 @@ def calc_pmi(alignments, scores=None):
 
 
 class OnlinePMITrainer:
-    """Train a PMI scorer step-by-step on always improving alignments."""
+    """
+    Trains a PMI scorer step-by-step on always improving alignments.
+
+    This class is sourced from PhyloStar's CogDetect library.
+    """
 
     def __init__(self, margin=1.0, alpha=0.75, gop=-2.5, gep=-1.75):
-        """Create a persistent aligner object.
+        """
+        Create a persistent aligner object.
 
         margin: scaling factor for scores
         alpha: Decay in update weight (must be between 0.5 and 1)
         gop, gep: Gap opening and extending penalty. gop=None uses character-dependent penalties.
-
         """
         self.margin = margin
         self.alpha = alpha
@@ -66,7 +73,9 @@ class OnlinePMITrainer:
         self.gop = gop
 
     def align_pairs(self, word_pairs, local=False):
-        """Align a list of word pairs, removing those that align badly."""
+        """
+        Align a list of word pairs, removing those that align badly.
+        """
         algn_list, scores = [], []
         n_zero = 0
         for w in range(len(word_pairs)-1, -1, -1):
