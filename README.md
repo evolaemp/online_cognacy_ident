@@ -24,9 +24,12 @@ pip install -r requirements.txt
 python -m unittest discover online_cognacy_ident
 ```
 
-## windows users
+### windows users
 
-Installing ` python-igraph ` on windows may not work via ` pip install python-igraph `. Please use the appropriate windows binaries from Christoph Gohlkes site: https://www.lfd.uci.edu/~gohlke/pythonlibs/
+Installing `python-igraph` on windows may not work via `pip install python-igraph`.
+Please use the appropriate windows binaries from Christoph Gohlkes site:
+https://www.lfd.uci.edu/~gohlke/pythonlibs/
+
 
 ## usage
 
@@ -57,7 +60,8 @@ extension.
 
 A dataset should have a header with at least the following columns: `doculect`
 or `language`, `concept` or `gloss`, and `asjp` or `transcription`. Column name
-detection is case-insensitive.
+detection is case-insensitive. If there are two or more words tied to a single
+gloss in a given doculect, all but the first are ignored.
 
 
 ## license
