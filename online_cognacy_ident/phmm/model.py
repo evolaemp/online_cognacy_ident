@@ -298,11 +298,10 @@ class PairHiddenMarkov(object):
                          new_em,
                          new_g_probs,
                          new_trans,
-                         alphabet,
                          weight=1.0):
         """
         Perform Baum-Welch training for PHMM
-        :param list_of_seq: list of pairs of sequences for training
+        :param list_of_seq: list of pairs of number coded sequences for training
         :type list_of_seq: list of tuple or list of list
         :param new_em: Storage for probabilities of sound correspondence, order as in alphabet
         :type new_em:  np.core.ndarray
@@ -310,8 +309,6 @@ class PairHiddenMarkov(object):
         :type new_g_probs:  np.core.ndarray
         :param new_trans: Storage for state Transitions; order: delta, epsilon, lambda, tauM, tauXY
         :type new_trans:  np.core.ndarray
-        :param alphabet: All Symbols which are used (dictionary with sound symbols as keys and index of this sound)
-        :type alphabet: dict
         :param weight: factor for weighing training iteration
         :type weight: float
         :return: new trained parameters
@@ -334,9 +331,6 @@ class PairHiddenMarkov(object):
         for seq1, seq2 in list_of_seq:
 
             if len(seq1) > 0 and len(seq2) > 0:
-
-                seq1 = [alphabet[i] for i in seq1]
-                seq2 = [alphabet[i] for i in seq2]
 
                 fwd_trellis, p = self.forward(seq1, seq2)
 

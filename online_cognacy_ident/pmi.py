@@ -109,7 +109,7 @@ def run_pmi(dataset, initial_cutoff=0.5, alpha=0.75, margin=1.0, max_iter=15, ba
 
     The keyword args comprise the algorithm parameters.
     """
-    word_pairs = list(dataset.generate_pairs(initial_cutoff))
+    word_pairs = dataset.get_asjp_pairs(initial_cutoff)
 
     online = OnlinePMITrainer(alpha=alpha, margin=margin)
 

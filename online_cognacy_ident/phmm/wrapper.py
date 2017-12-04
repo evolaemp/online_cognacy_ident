@@ -121,26 +121,26 @@ def training_wrapped(dataset):
     :return: trained parameters, emission matrix, gap x, gap y, Transition
     :rtype: (np.core.ndarray, np.core.ndarray, np.core.ndarray, np.core.ndarray)
     """
-    wordpairs = [pair for pair in dataset.generate_pairs()]
-    alphabet = {char: i for i, char in enumerate(dataset.get_alphabet())}
+    alphabet = dataset.get_alphabet()
+    wordpairs = dataset.get_asjp_pairs(initial_cutoff, as_int_tuples=True)
 
     # create storage for new parameters, include some pseudo counts to facilitate normalization
-    em_store = np.zeros((len(list(alphabet.keys())), len(list(alphabet.keys()))))
+    em_store = np.zeros((len(alphabet), len(alphabet)))
     em_store[:] = 0.0001
 
-    g_store = np.zeros(len(list(alphabet.keys())))
+    g_store = np.zeros(len(alphabet))
     g_store[:] = 0.0001
 
     trans_store = np.array([10.0001, 10.0001, 0.0, 10.0001, 10.0001, 10.0001, 10.0001])
 
     # create initial parameters
-    em_input = np.ones((len(list(alphabet.keys())), len(list(alphabet.keys()))))
+    em_input = np.ones((len(alphabet), len(alphabet)))
     em_input /= np.sum(em_input)
 
-    gx_input = np.ones(len(list(alphabet.keys())))
+    gx_input = np.ones(len(alphabet))
     gx_input /= np.sum(gx_input)
 
-    gy_input = np.ones(len(list(alphabet.keys())))
+    gy_input = np.ones(len(alphabet))
     gy_input /= np.sum(gy_input)
 
     # delta, epsilon, lambda, taum, tauxy
@@ -151,8 +151,7 @@ def training_wrapped(dataset):
         new_em, new_gx, new_gy, new_trans = model.baum_welch_train(list_of_seq=wordpairs,
                                                                     new_em=em_store,
                                                                     new_g_probs=g_store,
-                                                                    new_trans=trans_store,
-                                                                    alphabet=alphabet)
+                                                                    new_trans=trans_store)
 
         results = [np.allclose(em_input, new_em), np.allclose(gx_input, new_gx),
                    np.allclose(gy_input, new_gy), np.allclose(trans_input, new_trans)]
@@ -169,7 +168,7 @@ def training_wrapped(dataset):
     return em_input, gy_input, gy_input, trans_input
 
 
-def training_wrapped_online(dataset, size, alpha, alphabet, rt=0.0001, at=0.000001, con_check=False, initial_cutoff=0.5):
+def training_wrapped_online(dataset, size, alpha, rt=0.0001, at=0.000001, con_check=False, initial_cutoff=0.5):
     """
     This function wraps the online EM training
     :param con_check: Check convergence thorugh change in model likelihood if set to False. Use similarity in parameters
@@ -190,25 +189,26 @@ def training_wrapped_online(dataset, size, alpha, alphabet, rt=0.0001, at=0.0000
     :return: trained parameters, emission matrix, gap x, gap y, Transition
     :rtype: (np.core.ndarray, np.core.ndarray, np.core.ndarray, np.core.ndarray)
     """
-    wordpairs = list(dataset.generate_pairs(initial_cutoff))
+    alphabet = dataset.get_alphabet()
+    wordpairs = dataset.get_asjp_pairs(initial_cutoff, as_int_tuples=True)
 
     # create storage for new parameters, include some pseudo counts to facilitate normalization
-    em_store = np.zeros((len(list(alphabet.keys())), len(list(alphabet.keys()))))
+    em_store = np.zeros((len(alphabet), len(alphabet)))
     em_store[:] = 0.0001
 
-    g_store = np.zeros(len(list(alphabet.keys())))
+    g_store = np.zeros(len(alphabet))
     g_store[:] = 0.0001
 
     trans_store = np.array([10.0001, 10.0001, 10.0001, 10.0001, 10.0001, 10.0001, 10.0001])
 
     # create initial parameters
-    em_input = np.ones((len(list(alphabet.keys())), len(list(alphabet.keys()))))
+    em_input = np.ones((len(alphabet), len(alphabet)))
     em_input /= np.sum(em_input)
 
-    gx_input = np.ones(len(list(alphabet.keys())))
+    gx_input = np.ones(len(alphabet))
     gx_input /= np.sum(gx_input)
 
-    gy_input = np.ones(len(list(alphabet.keys())))
+    gy_input = np.ones(len(alphabet))
     gy_input /= np.sum(gy_input)
 
     # delta, epsilon, lambda, taum, tauxy
@@ -234,8 +234,7 @@ def training_wrapped_online(dataset, size, alpha, alphabet, rt=0.0001, at=0.0000
             new_em, new_gx, new_gy, new_trans = model.baum_welch_train(list_of_seq=chunk,
                                                                         new_em=em_store,
                                                                         new_g_probs=g_store,
-                                                                        new_trans=trans_store,
-                                                                        alphabet=alphabet)
+                                                                        new_trans=trans_store)
 
             em_input = merge(em_input, new_em, n_o_batches, alpha)
             gx_input = merge(gx_input, new_gx, n_o_batches, alpha)
@@ -254,20 +253,20 @@ def training_wrapped_online(dataset, size, alpha, alphabet, rt=0.0001, at=0.0000
 
             if run > 0:
                 llold = ll
-                ll = model_ll(wordpairs, em_input, gx_input, gy_input, trans_input, alphabet)
+                ll = model_ll(wordpairs, em_input, gx_input, gy_input, trans_input)
                 if np.abs(llold-ll) < at:
                     converged = True
             else:
-                ll = model_ll(wordpairs, em_input, gx_input, gy_input, trans_input, alphabet)
+                ll = model_ll(wordpairs, em_input, gx_input, gy_input, trans_input)
 
         run += 1
     return em_input, gx_input, gy_input, trans_input
 
 
-def model_ll(wordpairs, em, gx, gy, tr, alph):
+def model_ll(wordpairs, em, gx, gy, tr):
     """
     calculate model likelihood of phmm using the forward algorithm
-    :param wordpairs: list of wordpairs
+    :param wordpairs: list of wordpairs, number coded
     :type wordpairs: list
     :param em: Probabilities of sound correspondence, order as in alphabet
     :type em: np.core.ndarray
@@ -277,8 +276,6 @@ def model_ll(wordpairs, em, gx, gy, tr, alph):
     :type gy: np.core.ndarray
     :param tr: Probabilities of state Transitions; order: delta, epsilon, lambda, tauM, tauXY
     :type tr: np.core.ndarray
-    :param alph: All Symbols which are used (dictionary with sound symbols as keys and index of this sound)
-    :type alph: dict
     :return:
     :rtype:
     """
@@ -287,15 +284,13 @@ def model_ll(wordpairs, em, gx, gy, tr, alph):
     model = PairHiddenMarkov(em, gx, gy, tr)
     for seq1, seq2 in wordpairs:
         if len(seq1) > 0 and len(seq2) > 0:
-            seq1 = [alph[i] for i in seq1]
-            seq2 = [alph[i] for i in seq2]
             sc += model.forward(seq1, seq2)[1]
             ct += 1
     return sc/ct
 
 
 
-def alignment_wrapped(dataset, em, gx, gy, trans, alphabet):
+def alignment_wrapped(dataset, em, gx, gy, trans):
     """
     This function returns the alignment scores of the words in the data file
     :param dataset: dataset containing training data
@@ -313,6 +308,8 @@ def alignment_wrapped(dataset, em, gx, gy, trans, alphabet):
     :return: dictionary of alignment scores
     :rtype: dict
     """
+    alphabet = {char: i for i, char in enumerate(dataset.get_alphabet())}
+
     score_dict = collections.defaultdict()
     model = PairHiddenMarkov(em, gx, gy, trans)
     equi = dataset.get_equilibrium()
@@ -342,7 +339,7 @@ def run_phmm(dataset, initial_cutoff=0.5, alpha=0.75, batch_size=256):
 
     The keyword args comprise the algorithm parameters.
     """
-    alphabet = {char: i for i, char in enumerate(dataset.get_alphabet())}
-    em, gx, gy, trans = training_wrapped_online(dataset, batch_size,
-                            alpha, alphabet, initial_cutoff=initial_cutoff)
-    return alignment_wrapped(dataset, em, gx, gy, trans, alphabet)
+    em, gx, gy, trans = training_wrapped_online(
+            dataset, batch_size, alpha, initial_cutoff=initial_cutoff)
+
+    return alignment_wrapped(dataset, em, gx, gy, trans)

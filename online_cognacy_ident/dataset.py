@@ -118,12 +118,11 @@ class Dataset:
                 header = self._parse_header(next(reader),
                         exclude=[] if cog_sets else ['cog_class'])
 
-                self.alphabet = set()
                 self.equilibrium = defaultdict(float)
+
                 for line in reader:
                     asjp = clean_asjp(line[header['asjp']])
 
-                    self.alphabet |= set(asjp)
                     for i in asjp:
                         self.equilibrium[i] += 1.0
 
@@ -159,10 +158,17 @@ class Dataset:
         Return a sorted list of all characters found throughout transcriptions
         in the dataset. Raise a DatasetError if there is a problem.
         """
-        if self.alphabet is None:
-            self.get_words()
+        if self.alphabet is not None:
+            return self.alphabet
 
-        return sorted(self.alphabet)
+        self.alphabet = set()
+
+        for word in self.get_words():
+            self.alphabet |= set(word.asjp)
+
+        self.alphabet = sorted(self.alphabet)
+
+        return self.alphabet
 
 
     def get_words(self):
@@ -201,14 +207,22 @@ class Dataset:
         return d
 
 
-    def generate_pairs(self, cutoff=1.0):
+    def get_asjp_pairs(self, cutoff=1.0, as_int_tuples=False):
         """
-        Generate pairs of transcriptions of words from different languages but
-        linked to the same concept. If the keyword arg is less than 1.0, pairs
-        with edit distance above that threshold are also ignored.
+        Return the list of the pairs of transcriptions of words from different
+        languages but linked to the same concept.
+
+        If the cutoff arg is less than 1.0, pairs with edit distance above that
+        threshold are also ignored. If the other keyword arg is set, return the
+        transcriptions as tuples of the letters' indices in self.alphabet.
 
         Raise a DatasetError if there is an error reading the dataset file.
         """
+        pairs = []
+
+        if as_int_tuples:
+            alphabet = self.get_alphabet()
+
         for concept, words in self.get_concepts().items():
             for word1, word2 in itertools.combinations(words, 2):
                 if word1.doculect == word2.doculect:
@@ -217,7 +231,16 @@ class Dataset:
                 if normalized_levenshtein(word1.asjp, word2.asjp) > cutoff:
                     continue
 
-                yield word1.asjp, word2.asjp
+                if as_int_tuples:
+                    pair = (
+                        tuple([alphabet.index(char) for char in word1.asjp]),
+                        tuple([alphabet.index(char) for char in word2.asjp]))
+                else:
+                    pair = (word1.asjp, word2.asjp)
+
+                pairs.append(pair)
+
+        return pairs
 
 
     def get_clusters(self):
