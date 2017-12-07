@@ -81,8 +81,7 @@ class OnlinePMITrainer:
         for w in range(len(word_pairs)-1, -1, -1):
             w1, w2 = word_pairs[w]
             s, alg = needleman_wunsch(
-                w1, w2, gop=self.gop, gep=self.gep, lodict=self.pmidict,
-                local=local)
+                w1, w2, self.pmidict, gop=self.gop, gep=self.gep)
             if s <= self.margin:
                 n_zero += 1
                 word_pairs.pop(w)

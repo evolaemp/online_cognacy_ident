@@ -1,14 +1,3 @@
-"""
-This module contains two functions, one calculating the edit distance between
-two strings, and the other implementing the Needleman-Wunsch algorithm. Both
-are sourced from PhyloStar's CogDetect repo and should be replaced with faster
-implementations.
-"""
-
-import numpy as np
-
-
-
 def normalized_levenshtein(a, b):
     """
     Levenshtein distance normalized
@@ -18,6 +7,8 @@ def normalized_levenshtein(a, b):
     :type b: str
     :return: distance score
     :rtype: float
+
+    This function is sourced from PhyloStar's CogDetect library.
     """
     m = [];
     la = len(a) + 1;
@@ -38,71 +29,55 @@ def normalized_levenshtein(a, b):
 
 
 
-def needleman_wunsch(x, y, lodict={}, gop=-2.5, gep=-1.75, local=False, indel=''):
-    """Needleman-Wunsch algorithm with affine gaps penalties.
-
-    This code implements the NW algorithm for pairwise string
-    alignment with affine gap penalties.
-
-    'lodict' must be a dictionary with all symbol pairs as keys and
-    match scores as values, or a False value (including an empty
-    dictionary) to denote (-1, 1) scores. gop and gep are gap
-    penalties for opening/extending a gap; alternatively, you can set
-    'gop' to None and provide element/gap alignment costs.
-    indel takes the character used to denote an indel.
-
-    Returns the alignment score and one optimal alignment.
+def needleman_wunsch(seq_a, seq_b, scores={}, gop=-2.5, gep=-1.75):
     """
-    n, m = len(x), len(y)
-    dp = np.zeros((n + 1, m + 1))
-    pointers = np.zeros((n + 1, m + 1), np.int32)
-    if not local:
-        for i1, c1 in enumerate(x):
-            if gop is None:
-                dp[i1 + 1, 0] = lodict.get((c1, indel), gep)
-            else:
-                dp[i1 + 1, 0] = dp[i1, 0]+(gep if i1 + 1 > 1 else gop)
-            pointers[i1 + 1, 0] = 1
-        for i2, c2 in enumerate(y):
-            if gop is None:
-                dp[0, i2 + 1] = lodict.get((indel, c2), gep)
-            else:
-                dp[0, i2 + 1] = dp[0, i2]+(gep if i2 + 1 > 1 else gop)
-            pointers[0, i2 + 1] = 2
-    for i1, c1 in enumerate(x):
-        for i2, c2 in enumerate(y):
-            match = dp[i1, i2] + lodict.get(
-                (c1, c2),
-                1 if c1 == c2 else -1)
-            insert = dp[i1, i2 + 1] + (
-                lodict.get((c1, indel), gep) if gop is None else
-                gep if pointers[i1, i2 + 1] == 1 else gop)
-            delet = dp[i1 + 1, i2] + (
-                lodict.get((indel, c2), gep) if gop is None else
-                gep if pointers[i1 + 1, i2] == 2 else gop)
-            pointers[i1 + 1, i2 + 1] = p = np.argmax([match, insert, delet])
-            max_score = [match, insert, delet][p]
-            if local and max_score < 0:
-                max_score = 0
-            dp[i1 + 1, i2 + 1] = max_score
-    alg = []
-    if local:
-        i, j = np.unravel_index(dp.argmax(), dp.shape)
-    else:
-        i, j = n, m
-    score = dp[i, j]
-    while (i > 0 or j > 0):
-        pt = pointers[i, j]
-        if pt == 0:
-            i -= 1
-            j -= 1
-            alg = [(x[i], y[j])] + alg
-        if pt == 1:
-            i -= 1
-            alg = [(x[i], indel)] + alg
-        if pt == 2:
-            j -= 1
-            alg = [(indel, y[j])] + alg
-        if local and dp[i, j] == 0:
-            break
-    return score, alg
+    Align two sequences using a flavour of the Needleman-Wunsch algorithm with
+    fixed gap opening and gap extension penalties, attributed to Gotoh (1994).
+
+    The scores arg should be a (char_a, char_b): score dict; if a char pair is
+    missing, 1/-1 are used as match/mismatch scores.
+
+    Return the best alignment score and one optimal alignment.
+    """
+    matrix = {}  # (x, y): (score, back)
+
+    for y in range(len(seq_b) + 1):
+        for x in range(len(seq_a) + 1):
+            cands = []  # [(score, back), ..]
+
+            if x > 0:
+                score = matrix[(x-1, y)][0] \
+                    + (gep if matrix[(x-1, y)][1] == '←' else gop)
+                cands.append((score, '←'))
+
+            if y > 0:
+                score = matrix[(x, y-1)][0] \
+                    + (gep if matrix[(x, y-1)][1] == '↑' else gop)
+                cands.append((score, '↑'))
+
+            if x > 0 and y > 0:
+                if (seq_a[x-1], seq_b[y-1]) in scores:
+                    score = scores[(seq_a[x-1], seq_b[y-1])]
+                else:
+                    score = 1 if seq_a[x-1] == seq_b[y-1] else -1
+                score += matrix[(x-1, y-1)][0]
+                cands.append((score, '.'))
+            elif x == 0 and y == 0:
+                cands.append((0.0, '.'))
+
+            matrix[(x, y)] = max(cands)
+
+    alignment = []
+
+    while (x, y) != (0, 0):
+        if matrix[(x, y)][1] == '←':
+            alignment.append((seq_a[x-1], ''))
+            x -= 1
+        elif matrix[(x, y)][1] == '↑':
+            alignment.append(('', seq_b[y-1]))
+            y -= 1
+        else:
+            alignment.append((seq_a[x-1], seq_b[y-1]))
+            x, y = x-1, y-1
+
+    return matrix[(len(seq_a), len(seq_b))][0], tuple(reversed(alignment))
