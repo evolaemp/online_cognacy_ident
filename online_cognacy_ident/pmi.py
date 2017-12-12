@@ -17,7 +17,7 @@ def sigmoid(x):
 
 
 
-def calc_pmi(alignments, scores=None):
+def calc_pmi(alignment_dict, char_list, scores, initialize=False):
     """
     Calculate a pointwise mutual information dictionary from alignments.
 
@@ -25,41 +25,54 @@ def calc_pmi(alignments, scores=None):
     calculate the logarithmic pairwise mutual information encoded for the
     character pairs in the alignments.
 
-    This function is sourced from PhyloStar's CogDetect library.
+    This function is sourced from PhyloStar's OnlinePMI repository.
     """
-    if scores is None:
-        scores = itertools.cycle([1])
-
     sound_dict = collections.defaultdict(float)
+    relative_align_freq = 0.0
+    relative_sound_freq = 0.0
     count_dict = collections.defaultdict(float)
 
-    for alignment, score in zip(alignments, scores):
-        for a1, a2 in alignment:
-            if a1 == "" or a2 == "":
+    if initialize == True:
+        for c1, c2 in itertools.product(char_list, repeat=2):
+            if c1 == "-" or c2 == "-":
                 continue
-            count_dict[a1, a2] += 1.0*score
-            count_dict[a2, a1] += 1.0*score
+            count_dict[c1,c2] += 0.001
+            count_dict[c2,c1] += 0.001
+            sound_dict[c1] += 0.001
+            sound_dict[c2] += 0.001
+            relative_align_freq += 0.001
+            relative_sound_freq += 0.002
+
+    for alignment, score in zip(alignment_dict, scores):
+        #score = 1.0
+        for a1, a2 in alignment:
+            if a1 == "-" or a2 == "-":
+                continue
+            count_dict[a1,a2] += 1.0*score
+            count_dict[a2,a1] += 1.0*score
             sound_dict[a1] += 2.0*score
             sound_dict[a2] += 2.0*score
+            #relative_align_freq += 2.0
+            #relative_sound_freq += 2.0
 
-    log_weight = 2 * np.log(sum(list(
-        sound_dict.values()))) - np.log(sum(list(
-            count_dict.values())))
+    relative_align_freq = sum(list(count_dict.values()))
+    relative_sound_freq = sum(list(sound_dict.values()))
 
-    for (c1, c2) in count_dict.keys():
-        m = count_dict[c1, c2]
-        #assert m > 0
+    for a in count_dict.keys():
+        m = count_dict[a]
+        if m <=0: print(a, m)
+        assert m>0
 
-        num = np.log(m)
-        denom = np.log(sound_dict[c1]) + np.log(sound_dict[c2])
-        val = num - denom + log_weight
-        count_dict[c1, c2] = val
-
+        num = np.log(m)-np.log(relative_align_freq)
+        denom = np.log(sound_dict[a[0]])+np.log(sound_dict[a[1]])-(2.0*np.log(relative_sound_freq))
+        val = num - denom
+        count_dict[a] = val
+        #count_dict[a] = val/(-1.0*num)
     return count_dict
 
 
 
-def train_pmi(word_pairs, alpha=0.75, margin=1.0, max_iter=15, batch_size=256):
+def train_pmi(word_pairs, alphabet, alpha=0.75, margin=1.0, max_iter=15, batch_size=256):
     """
     Train the PMI dict mapping pairs of ASJP sounds to their PMI scores on word
     pairs using the EM algorithm with the specified parameters.
@@ -82,10 +95,11 @@ def train_pmi(word_pairs, alpha=0.75, margin=1.0, max_iter=15, batch_size=256):
 
                 if score > margin:
                     algn_list.append(alg)
-                    scores.append(score)
+                    scores.append(1.0 - sigmoid(score))
                     pruned_word_pairs.append((word1, word2))
 
-            for key, value in calc_pmi(algn_list, scores).items():
+            mb_pmi_dict = calc_pmi(algn_list, alphabet, scores, initialize=True)
+            for key, value in mb_pmi_dict.items():
                 pmidict_val = pmidict[key]
                 pmidict[key] = (eta*value) + (1.0-eta) * pmidict_val
 
@@ -107,7 +121,9 @@ def run_pmi(dataset, initial_cutoff=0.5, alpha=0.75, margin=1.0, max_iter=15, ba
     The keyword args comprise the algorithm parameters.
     """
     word_pairs = dataset.get_asjp_pairs(initial_cutoff)
-    pmi = train_pmi(word_pairs, alpha, margin, max_iter, batch_size)
+    alphabet = dataset.get_alphabet()
+
+    pmi = train_pmi(word_pairs, alphabet, alpha, margin, max_iter, batch_size)
 
     scores = {}
 
