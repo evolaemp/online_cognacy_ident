@@ -8,6 +8,15 @@ from online_cognacy_ident.align import needleman_wunsch
 
 
 
+def sigmoid(x):
+    """
+    Implementation of the common sigmoid function, the logistic function with
+    standard parameters (L=1, k=1, x₀=0).
+    """
+    return 1.0 / (1.0 + np.exp(-x))
+
+
+
 def calc_pmi(alignments, scores=None):
     """
     Calculate a pointwise mutual information dictionary from alignments.
@@ -50,53 +59,42 @@ def calc_pmi(alignments, scores=None):
 
 
 
-class OnlinePMITrainer:
+def train_pmi(word_pairs, alpha=0.75, margin=1.0, max_iter=15, batch_size=256):
     """
-    Trains a PMI scorer step-by-step on always improving alignments.
+    Train the PMI dict mapping pairs of ASJP sounds to their PMI scores on word
+    pairs using the EM algorithm with the specified parameters.
 
-    This class is sourced from PhyloStar's CogDetect library.
+    This function is mostly sourced from PhyloStar's OnlinePMI repository.
     """
+    pmidict = collections.defaultdict(float)
+    num_updates = 0
 
-    def __init__(self, margin=1.0, alpha=0.75, gop=-2.5, gep=-1.75):
-        """
-        Create a persistent aligner object.
+    for curr_iter in range(max_iter):
+        random.shuffle(word_pairs)
+        pruned_word_pairs = []
 
-        margin: scaling factor for scores
-        alpha: Decay in update weight (must be between 0.5 and 1)
-        gop, gep: Gap opening and extending penalty. gop=None uses character-dependent penalties.
-        """
-        self.margin = margin
-        self.alpha = alpha
-        self.n_updates = 0
-        self.pmidict = collections.defaultdict(float)
-        self.gep = gep
-        self.gop = gop
+        for index in range(0, len(word_pairs), batch_size):
+            eta = np.power(num_updates+2, -alpha)
+            algn_list, scores = [], []
 
-    def align_pairs(self, word_pairs, local=False):
-        """
-        Align a list of word pairs, removing those that align badly.
-        """
-        algn_list, scores = [], []
-        n_zero = 0
-        for w in range(len(word_pairs)-1, -1, -1):
-            w1, w2 = word_pairs[w]
-            s, alg = needleman_wunsch(
-                w1, w2, self.pmidict, gop=self.gop, gep=self.gep)
-            if s <= self.margin:
-                n_zero += 1
-                word_pairs.pop(w)
-                continue
-            algn_list.append(alg)
-            scores.append(s)
-        self.update_pmi_dict(algn_list, scores=scores)
-        return algn_list, n_zero
+            for word1, word2 in word_pairs[index:index+batch_size]:
+                score, alg = needleman_wunsch(word1, word2, pmidict)
 
-    def update_pmi_dict(self, algn_list, scores=None):
-        eta = (self.n_updates + 2) ** (-self.alpha)
-        for k, v in calc_pmi(algn_list, scores).items():
-            pmidict_val = self.pmidict.get(k, 0.0)
-            self.pmidict[k] = (eta * v) + ((1.0 - eta) * pmidict_val)
-        self.n_updates += 1
+                if score > margin:
+                    algn_list.append(alg)
+                    scores.append(score)
+                    pruned_word_pairs.append((word1, word2))
+
+            for key, value in calc_pmi(algn_list, scores).items():
+                pmidict_val = pmidict[key]
+                pmidict[key] = (eta*value) + (1.0-eta) * pmidict_val
+
+            num_updates += 1
+
+        word_pairs = list(pruned_word_pairs)
+        print('iteration {!s} (total updates: {!s})'.format(curr_iter, num_updates))
+
+    return pmidict
 
 
 
@@ -109,27 +107,14 @@ def run_pmi(dataset, initial_cutoff=0.5, alpha=0.75, margin=1.0, max_iter=15, ba
     The keyword args comprise the algorithm parameters.
     """
     word_pairs = dataset.get_asjp_pairs(initial_cutoff)
-
-    online = OnlinePMITrainer(alpha=alpha, margin=margin)
-
-    for n_iter in range(0, max_iter):
-        random.shuffle(word_pairs)
-
-        index = 0
-        while index < len(word_pairs):
-            batch = word_pairs[index:index+batch_size]
-            online.align_pairs(batch)
-            word_pairs[index:index+batch_size] = batch
-            index += len(batch)
-
-        print('iteration {!s} (total updates: {!s})'.format(n_iter, online.n_updates))
+    pmi = train_pmi(word_pairs, alpha, margin, max_iter, batch_size)
 
     scores = {}
 
     for concept, words in dataset.get_concepts().items():
         for word1, word2 in itertools.combinations(words, 2):
-            score, _ = needleman_wunsch(word1.asjp, word2.asjp, online.pmidict)
-            score = 1 - (1/(1 + np.exp(-score)))
+            score, _ = needleman_wunsch(word1.asjp, word2.asjp, pmi)
+            score = 1 - sigmoid(score)
 
             key = (word1, word2) if word1 < word2 else (word2, word1)
             scores[key] = score
