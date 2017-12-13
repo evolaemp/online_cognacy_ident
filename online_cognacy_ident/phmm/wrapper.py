@@ -4,7 +4,7 @@ import itertools
 import numpy as np
 
 from online_cognacy_ident.phmm.model import PairHiddenMarkov
-
+from online_cognacy_ident.pmi import sigmoid
 
 
 def read_data(wordpair_file, exc=("%", "~", "*", "$", "\"")):
@@ -325,7 +325,7 @@ def alignment_wrapped(dataset, em, gx, gy, trans):
             v_score = model.viterbi(s1, s2)[1]
             r_score = model.random_model(s1, s2, eq)
             key = (word1, word2) if word1 < word2 else (word2, word1)
-            score_dict[key] = v_score / r_score
+            score_dict[key] = sigmoid(v_score / r_score)
 
     return score_dict
 
