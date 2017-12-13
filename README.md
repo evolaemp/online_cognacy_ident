@@ -1,7 +1,9 @@
 # online cognacy identification
 
 This repository accompanies the paper **Fast and unsupervised methods for
-multilingual cognate clustering** by Rama, Wahle, Sofroniev, and Jäger.
+multilingual cognate clustering** by Rama, Wahle, Sofroniev, and Jäger. The
+repository contains both the data and the source code used in the paper's
+experiments.
 
 
 ## setup
@@ -64,6 +66,34 @@ detection is case-insensitive. If there are two or more words tied to a single
 gloss in a given doculect, all but the first are ignored.
 
 
+## datasets
+
+The datasets used in the paper's experiments can be found in the `datasets`
+directory.
+
+| dataset            | language families        | source                    |
+|--------------------|--------------------------|---------------------------|
+| `abvd`             | Austronesian             | Greenhill et al, 2008     |
+| `afrasian`         | Afro-Asiatic             | Militarev, 2000           |
+| `bai`              | Sino-Tibetan             | Wang, 2006                |
+| `chinese_1964`     | Sino-Tibetan             | Běijīng Dàxué, 1964       |
+| `chinese_2004`     | Sino-Tibetan             | Hóu, 2004                 |
+| `huon`             | Trans-New Guinea         | McElhanon, 1967           |
+| `ielex`            | Indo-European            | Dunn, 2012                |
+| `japanese`         | Japonic                  | Hattori, 1973             |
+| `kadai`            | Tai-Kadai                | Peiros, 1998              |
+| `kamasau`          | Torricelli               | Sanders, 1980             |
+| `lolo_burmese`     | Sino-Tibetan             | Peiros, 1998              |
+| `mayan`            | Mayan                    | Brown, 2008               |
+| `miao_yao`         | Hmong-Mien               | Peiros, 1998              |
+| `mixe_zoque`       | Mixe-Zoque               | Cysouw et al, 2006        |
+| `mon_khmer`        | Austroasiatic            | Peiros, 1998              |
+| `ob_ugrian`        | Uralic                   | Zhivlov, 2011             |
+| `tujia`            | Sino-Tibetan             | Starostin, 2013           |
+
+
 ## license
 
-The source code is published under the MIT License (see the `LICENSE` file).
+The datasets are published under a [Creative Commons Attribution-ShareAlike 4.0
+International License](https://creativecommons.org/licenses/by-sa/4.0/). The
+source code is published under the MIT License (see the `LICENSE` file).
