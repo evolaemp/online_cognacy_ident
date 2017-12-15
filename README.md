@@ -29,6 +29,9 @@ pip install -r requirements.txt
 python -m unittest discover online_cognacy_ident
 ```
 
+If you run into difficulties, please make sure you have tried the setup in a
+fresh virtual environment before opening an issue.
+
 ### windows users
 
 Installing `python-igraph` on windows may not work via `pip install python-igraph`.
