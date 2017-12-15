@@ -8,6 +8,9 @@ experiments.
 
 ## setup
 
+The code is developed using Python 3.5 but later versions should also do as long
+as the dependencies are satisfied.
+
 ```bash
 # clone this repository
 git clone https://github.com/evolaemp/online_cognacy_ident
