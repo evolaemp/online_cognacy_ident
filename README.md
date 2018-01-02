@@ -52,13 +52,13 @@ export PYTHONHASHSEED=42
 python run.py --help
 
 # run the pair hidden markov model algorithm
-python run.py phmm datasets/japanese.tsv --output output/japanese.tsv
+python run.py phmm --ipa datasets/japanese.tsv --output output/japanese.tsv
 
 # run the pointwise mutual information algorithm
-python run.py pmi datasets/japanese.tsv --output output/japanese.tsv
+python run.py pmi --ipa datasets/japanese.tsv --output output/japanese.tsv
 
 # evaluate the output
-python eval.py path/to/dataset.tsv output.tsv
+python eval.py datasets/japanese.tsv output/japanese.tsv
 ```
 
 A dataset should be in csv format. You can specify the csv dialect using the
@@ -77,25 +77,28 @@ gloss in a given doculect, all but the first are ignored.
 The datasets used in the paper's experiments can be found in the `datasets`
 directory.
 
-| dataset            | language families        | source                    |
-|--------------------|--------------------------|---------------------------|
-| `abvd`             | Austronesian             | Greenhill et al, 2008     |
-| `afrasian`         | Afro-Asiatic             | Militarev, 2000           |
-| `bai`              | Sino-Tibetan             | Wang, 2006                |
-| `chinese_1964`     | Sino-Tibetan             | Běijīng Dàxué, 1964       |
-| `chinese_2004`     | Sino-Tibetan             | Hóu, 2004                 |
-| `huon`             | Trans-New Guinea         | McElhanon, 1967           |
-| `ielex`            | Indo-European            | Dunn, 2012                |
-| `japanese`         | Japonic                  | Hattori, 1973             |
-| `kadai`            | Tai-Kadai                | Peiros, 1998              |
-| `kamasau`          | Torricelli               | Sanders, 1980             |
-| `lolo_burmese`     | Sino-Tibetan             | Peiros, 1998              |
-| `mayan`            | Mayan                    | Brown, 2008               |
-| `miao_yao`         | Hmong-Mien               | Peiros, 1998              |
-| `mixe_zoque`       | Mixe-Zoque               | Cysouw et al, 2006        |
-| `mon_khmer`        | Austroasiatic            | Peiros, 1998              |
-| `ob_ugrian`        | Uralic                   | Zhivlov, 2011             |
-| `tujia`            | Sino-Tibetan             | Starostin, 2013           |
+| dataset        | language families | transcription | source                |
+|----------------|-------------------|---------------|-----------------------|
+| `abvd`         | Austronesian      | ipa           | Greenhill et al, 2008 |
+| `afrasian`     | Afro-Asiatic      | asjp          | Militarev, 2000       |
+| `bai`          | Sino-Tibetan      | ipa           | Wang, 2006            |
+| `chinese_1964` | Sino-Tibetan      | ipa           | Běijīng Dàxué, 1964   |
+| `chinese_2004` | Sino-Tibetan      | ipa           | Hóu, 2004             |
+| `huon`         | Trans-New Guinea  | asjp          | McElhanon, 1967       |
+| `ielex`        | Indo-European     | ipa           | Dunn, 2012            |
+| `japanese`     | Japonic           | ipa           | Hattori, 1973         |
+| `kadai`        | Tai-Kadai         | asjp          | Peiros, 1998          |
+| `kamasau`      | Torricelli        | asjp          | Sanders, 1980         |
+| `lolo_burmese` | Sino-Tibetan      | asjp          | Peiros, 1998          |
+| `mayan`        | Mayan             | asjp          | Brown, 2008           |
+| `miao_yao`     | Hmong-Mien        | asjp          | Peiros, 1998          |
+| `mixe_zoque`   | Mixe-Zoque        | asjp          | Cysouw et al, 2006    |
+| `mon_khmer`    | Austroasiatic     | asjp          | Peiros, 1998          |
+| `ob_ugrian`    | Uralic            | ipa           | Zhivlov, 2011         |
+| `tujia`        | Sino-Tibetan      | ipa           | Starostin, 2013       |
+
+Please note that you should use the `--ipa` flag when running the algorithms on
+any IPA-transcribed dataset, including the ones found in the `datasets` dir.
 
 
 ## license

@@ -94,6 +94,9 @@ class RunCli:
         other_args = self.parser.add_argument_group('optional arguments - other')
         other_args.add_argument('-h', '--help', action='help', help=(
             'show this help message and exit'))
+        other_args.add_argument('-i', '--ipa', action='store_true', help=(
+            'convert input transcriptions from IPA to ASJP; '
+            'by default these are assumed to be ASJP'))
         other_args.add_argument('-e', '--evaluate', action='store_true', help=(
             'evaluate the output against the input dataset and '
             'print the resulting F-score; this will fail '
@@ -111,7 +114,7 @@ class RunCli:
         start_time = time.time()
 
         try:
-            dataset = Dataset(args.dataset, args.dialect_input)
+            dataset = Dataset(args.dataset, args.dialect_input, args.ipa)
         except DatasetError as err:
             self.parser.error(str(err))
 

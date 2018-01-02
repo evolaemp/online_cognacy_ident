@@ -12,7 +12,7 @@ from online_cognacy_ident.asjp import clean_asjp
 
 """
 Dict mapping the column names that the Dataset class looks for to lists of
-possible variants. Used in Dataset._parse_header().
+possible variants. Used in Dataset._read_header().
 """
 RECOGNISED_COLUMN_NAMES = {
     'doculect': ['doculect', 'language', 'lang'],
@@ -53,7 +53,7 @@ class Dataset:
             print(err)
     """
 
-    def __init__(self, path, dialect=None):
+    def __init__(self, path, dialect=None, is_ipa=False):
         """
         Set the instance's props. Raise a DatasetError if the given file path
         does not exist. 
@@ -62,6 +62,9 @@ class Dataset:
         dialects or None, in which case the dialect is inferred based on the
         file extension. Raise a ValueError if the given dialect is specified
         but unrecognised.
+
+        If is_ipa is set, assume that the transcriptions are in IPA and convert
+        them into ASJP.
         """
         if not os.path.exists(path):
             raise DatasetError('Could not find file: {}'.format(path))
@@ -73,11 +76,12 @@ class Dataset:
 
         self.path = path
         self.dialect = dialect
+        self.is_ipa = is_ipa
 
         self.alphabet = None
 
 
-    def _parse_header(self, line, exclude=['cog_class']):
+    def _read_header(self, line, exclude=['cog_class']):
         """
         Return a {column name: index} dict, excluding the columns listed in the
         second func arg.
@@ -104,6 +108,17 @@ class Dataset:
         return d
 
 
+    def _read_asjp(self, raw_trans):
+        """
+        Process a raw transcription value into an ASJP transcription to be used
+        by the algorithms.
+        """
+        if self.is_ipa:
+            pass
+
+        return clean_asjp(raw_trans)
+
+
     def _read_words(self, cog_sets=False):
         """
         Generate the [] of Word entries in the dataset. Raise a DatasetError if
@@ -115,13 +130,13 @@ class Dataset:
             with open(self.path, encoding='utf-8', newline='') as f:
                 reader = csv.reader(f, dialect=self.dialect)
 
-                header = self._parse_header(next(reader),
+                header = self._read_header(next(reader),
                         exclude=[] if cog_sets else ['cog_class'])
 
                 self.equilibrium = defaultdict(float)
 
                 for line in reader:
-                    asjp = clean_asjp(line[header['asjp']])
+                    asjp = self._read_asjp(line[header['asjp']])
 
                     for i in asjp:
                         self.equilibrium[i] += 1.0
