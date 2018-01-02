@@ -52,19 +52,19 @@ export PYTHONHASHSEED=42
 python run.py --help
 
 # run the pair hidden markov model algorithm
-python run.py phmm path/to/dataset.tsv -o output.tsv
+python run.py phmm datasets/japanese.tsv --output output/japanese.tsv
 
 # run the pointwise mutual information algorithm
-python run.py pmi path/to/dataset.tsv -o output.tsv
+python run.py pmi datasets/japanese.tsv --output output/japanese.tsv
 
 # evaluate the output
 python eval.py path/to/dataset.tsv output.tsv
 ```
 
 A dataset should be in csv format. You can specify the csv dialect using the
-`--dialect` option, possible values are `excel`, `excel-tab`, and `unix`. If
-this is omitted, the script will try to guess the dialect by looking at the file
-extension.
+`--dialect-input` option, possible values are `excel`, `excel-tab`, and `unix`.
+If this is omitted, the script will try to guess the dialect by looking at the
+file extension.
 
 A dataset should have a header with at least the following columns: `doculect`
 or `language`, `concept` or `gloss`, and `asjp` or `transcription`. Column name
