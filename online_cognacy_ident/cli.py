@@ -118,6 +118,9 @@ class RunCli:
         except DatasetError as err:
             self.parser.error(str(err))
 
+        print('running {} on {} ({})'.format(
+            args.algorithm.upper(), args.dataset, 'IPA' if args.ipa else 'ASJP'))
+
         if args.algorithm == 'phmm':
             scores = run_phmm(dataset, initial_cutoff=args.initial_cutoff,
                                 alpha=args.alpha, batch_size=args.batch_size)

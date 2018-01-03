@@ -106,7 +106,7 @@ def train_pmi(word_pairs, alphabet, alpha=0.75, margin=1.0, max_iter=15, batch_s
             num_updates += 1
 
         word_pairs = list(pruned_word_pairs)
-        print('iteration {!s} (total updates: {!s})'.format(curr_iter, num_updates))
+        # print('iteration {!s} (total updates: {!s})'.format(curr_iter, num_updates))
 
     return pmidict
 
