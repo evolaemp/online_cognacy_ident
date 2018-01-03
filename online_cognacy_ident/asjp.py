@@ -1,3 +1,5 @@
+import unicodedata
+
 from lingpy.sequence.sound_classes import ipa2tokens, tokens2class
 
 
@@ -9,11 +11,13 @@ ASJP_SYMBOLS = 'pbmfv84tdszcnSZCjT5kgxNqGX7hlLwyr!ieE3auo'
 
 
 
-def clean_asjp(string):
+def clean_asjp(string, strict=False):
     """
-    Return a valid ASJP string out of a dataset field. If the latter contains
-    multiple entries, all but the first one are stripped. If it contains
-    non-ASJP symbols, these are ignored.
+    Clean up an ASJP transcription string. If the latter contains multiple
+    entries, all but the first one are stripped.
+
+    If strict=True, all non-ASJP symbols are ignored. Otherwise, only non-ASJP
+    symbols that are not letters are ignored.
     """
     string = string.strip().split(',')[0].strip()
 
@@ -21,6 +25,8 @@ def clean_asjp(string):
 
     for char in string:
         if char in ASJP_SYMBOLS:
+            asjp += char
+        elif not strict and unicodedata.category(char).startswith('L'):
             asjp += char
 
     return asjp
