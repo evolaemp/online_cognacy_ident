@@ -1,3 +1,7 @@
+from lingpy.sequence.sound_classes import ipa2tokens, tokens2class
+
+
+
 """
 String of all valid ASJP symbols.
 """
@@ -20,3 +24,11 @@ def clean_asjp(string):
             asjp += char
 
     return asjp
+
+
+
+def ipa_to_asjp(ipa):
+    """
+    Convert an IPA transcription into an ASJP one.
+    """
+    return ''.join(tokens2class(ipa2tokens(ipa), 'asjp'))

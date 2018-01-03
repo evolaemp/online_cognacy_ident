@@ -6,7 +6,7 @@ import os.path
 import sys
 
 from online_cognacy_ident.align import normalized_levenshtein
-from online_cognacy_ident.asjp import clean_asjp
+from online_cognacy_ident.asjp import clean_asjp, ipa_to_asjp
 
 
 
@@ -18,7 +18,7 @@ RECOGNISED_COLUMN_NAMES = {
     'doculect': ['doculect', 'language', 'lang'],
     'concept': ['concept', 'gloss'],
     'asjp': ['asjp', 'transcription'],
-    'cog_class': ['cog_class', 'cognate_class']
+    'cog_class': ['cog_class', 'cognate_class', 'cognate class', 'cogid']
 }
 
 
@@ -114,7 +114,7 @@ class Dataset:
         by the algorithms.
         """
         if self.is_ipa:
-            pass
+            raw_trans = ipa_to_asjp(raw_trans)
 
         return clean_asjp(raw_trans)
 
