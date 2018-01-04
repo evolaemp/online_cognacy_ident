@@ -114,7 +114,7 @@ class Dataset:
         Process a raw transcription value into an ASJP transcription:
         (1) if the input string consists of multiple comma-separated entries,
         remove all but the first one;
-        (2) remove whitespace chars (the symbols + and _ are also considered
+        (2) remove whitespace chars (the symbols +, - and _ are also considered
         whitespace and removed);
         (3) if this is an IPA dataset, convert the string to ASJP;
         (4) remove some common non-ASJP offender symbols.
@@ -123,7 +123,7 @@ class Dataset:
         """
         trans = raw_trans.strip().split(',')[0].strip()
 
-        for char in '+_ ':
+        for char in '+-_ ':
             trans = trans.replace(char, '')
 
         if self.is_ipa:
