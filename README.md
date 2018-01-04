@@ -34,9 +34,9 @@ fresh virtual environment before opening an issue.
 
 ### windows users
 
-Installing `python-igraph` on windows may not work via `pip install python-igraph`.
-Please use the appropriate windows binaries from Christoph Gohlkes site:
-https://www.lfd.uci.edu/~gohlke/pythonlibs/
+Installing `python-igraph` on Windows may not work via `pip install
+python-igraph`. Please use the appropriate windows binaries from [Christoph
+Gohlkes' site][ig].
 
 
 ## usage
@@ -100,9 +100,18 @@ directory.
 Please note that you should use the `--ipa` flag when running the algorithms on
 any IPA-transcribed dataset, including the ones found in the `datasets` dir.
 
+If you have [fish shell][fi] installed, you could invoke `./run_all.fish` which
+runs both algorithms on all the datasets, saves the results in the `output` dir
+and prints the evaluation scores to stdout.
+
 
 ## license
 
 The datasets are published under a [Creative Commons Attribution-ShareAlike 4.0
-International License](https://creativecommons.org/licenses/by-sa/4.0/). The
-source code is published under the MIT License (see the `LICENSE` file).
+International License][cc]. The source code is published under the MIT License
+(see the `LICENSE` file).
+
+
+[ig]: https://www.lfd.uci.edu/~gohlke/pythonlibs/
+[fi]: https://fishshell.com/
+[cc]: https://creativecommons.org/licenses/by-sa/4.0/
