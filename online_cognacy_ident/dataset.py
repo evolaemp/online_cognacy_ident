@@ -5,8 +5,9 @@ import itertools
 import os.path
 import sys
 
+from lingpy.sequence.sound_classes import ipa2tokens, tokens2class
+
 from online_cognacy_ident.align import normalized_levenshtein
-from online_cognacy_ident.asjp import clean_asjp, ipa_to_asjp
 
 
 
@@ -110,13 +111,28 @@ class Dataset:
 
     def _read_asjp(self, raw_trans):
         """
-        Process a raw transcription value into an ASJP transcription to be used
-        by the algorithms.
-        """
-        if self.is_ipa:
-            raw_trans = ipa_to_asjp(raw_trans)
+        Process a raw transcription value into an ASJP transcription:
+        (1) if the input string consists of multiple comma-separated entries,
+        remove all but the first one;
+        (2) remove whitespace chars (the symbols + and _ are also considered
+        whitespace and removed);
+        (3) if this is an IPA dataset, convert the string to ASJP;
+        (4) remove some common non-ASJP offender symbols.
 
-        return clean_asjp(raw_trans)
+        Helper for the _read_words method.
+        """
+        trans = raw_trans.strip().split(',')[0].strip()
+
+        for char in '+_ ':
+            trans = trans.replace(char, '')
+
+        if self.is_ipa:
+            trans = ''.join(tokens2class(ipa2tokens(trans), 'asjp'))
+
+        for char in '"$%*~':
+            trans = trans.replace(char, '')
+
+        return trans
 
 
     def _read_words(self, cog_sets=False):

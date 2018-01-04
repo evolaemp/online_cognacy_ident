@@ -2,6 +2,7 @@ import collections
 import csv
 import itertools
 import os.path
+import string
 import tempfile
 
 from unittest import TestCase
@@ -9,7 +10,6 @@ from unittest import TestCase
 from hypothesis.strategies import composite, integers, lists, sets, text
 from hypothesis import assume, given
 
-from online_cognacy_ident.asjp import ASJP_SYMBOLS
 from online_cognacy_ident.dataset import DatasetError, Dataset, Word, write_clusters
 
 
@@ -25,7 +25,7 @@ def clusters(draw):
     assume(all(['\0' not in s for s in langs]))
 
     num_words = len(concepts) * len(langs)
-    asjp = draw(lists(text(alphabet=ASJP_SYMBOLS, max_size=5),
+    asjp = draw(lists(text(alphabet=string.ascii_letters, max_size=5),
             min_size=num_words, max_size=num_words))
 
     counter = itertools.count()
@@ -47,13 +47,30 @@ def clusters(draw):
 
 class DatasetTestCase(TestCase):
 
-    def test_with_bad_path(self):
+    def test_read_asjp(self):
+        dataset = Dataset(os.path.abspath(__file__))
+
+        self.assertEqual(dataset._read_asjp('3ne'), '3ne')
+        self.assertEqual(dataset._read_asjp('masX~7e'), 'masX7e')
+        self.assertEqual(dataset._read_asjp('tX~ur'), 'tXur')
+        self.assertEqual(dataset._read_asjp('duC"e'), 'duCe')
+
+        self.assertEqual(dataset._read_asjp('naq k"ari7'), 'naqkari7')
+        self.assertEqual(dataset._read_asjp('t"ort"oh'), 'tortoh')
+
+    def test_read_asjp_from_ipa(self):
+        dataset = Dataset(os.path.abspath(__file__), is_ipa=True)
+
+        self.assertEqual(dataset._read_asjp('ʔikiʨuri'), '7ikiCuri')
+        self.assertEqual(dataset._read_asjp('pizuriːduːɭ'), 'pizuriduL')
+
+    def test_init_with_bad_path(self):
         with self.assertRaises(DatasetError) as cm:
             Dataset('')
 
         self.assertTrue(str(cm.exception).startswith('Could not find file'))
 
-    def test_with_bad_file(self):
+    def test_init_with_bad_file(self):
         path = os.path.abspath(__file__)
         dataset = Dataset(path)
 
