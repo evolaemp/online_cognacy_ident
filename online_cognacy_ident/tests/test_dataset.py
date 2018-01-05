@@ -79,6 +79,68 @@ class DatasetTestCase(TestCase):
 
         self.assertTrue(str(cm.exception).startswith('Could not find the column for'))
 
+    def test_get_alphabet_with_kamasau(self):
+        dataset = Dataset('datasets/kamasau.tsv')
+        self.assertEqual(dataset.get_alphabet(), [
+            '3', '5', '7', 'C', 'N',
+            'a', 'b', 'd', 'e', 'g', 'h', 'i', 'j', 'k',
+            'm', 'n', 'o', 'p', 'r', 's', 't', 'u', 'w', 'y'])
+
+    def test_get_words_with_kamasau(self):
+        dataset = Dataset('datasets/kamasau.tsv')
+        words = dataset.get_words()
+
+        self.assertEqual(len(words), 271)
+        self.assertEqual(words[0], Word('TRING', 'I', 'Ne'))
+        self.assertEqual(words[-9], Word('SAMAP', 'die', 'gureNnand'))
+        self.assertEqual(words[-1], Word('SAMAP', 'road (path)', 'N3m'))
+
+    def test_get_concepts_with_kamasau(self):
+        dataset = Dataset('datasets/kamasau.tsv')
+        concepts = dataset.get_concepts()
+
+        self.assertEqual(len(concepts), 36)
+        words = set([word for value in concepts.values() for word in value])
+        self.assertEqual(len(words), 271)
+        self.assertEqual(words, set(dataset.get_words()))
+
+    def test_get_asjp_pairs_with_kamasau(self):
+        dataset = Dataset('datasets/kamasau.tsv')
+        pairs = dataset.get_asjp_pairs()
+
+        self.assertEqual(sum([1 for a, b in pairs if a == 'mandi' or b == 'mandi']), 8*7/2)
+        self.assertEqual(sum([1 for a, b in pairs if a == 'wiye' and b == 'wiye']), 8*7/2)
+
+    def test_get_clusters_with_kamasau(self):
+        dataset = Dataset('datasets/kamasau.tsv')
+        words = dataset.get_words()
+        clusters = dataset.get_clusters()
+
+        for concept in ['I', 'come', 'water']:
+            words_ = [word for word in words if word.concept == concept]
+            self.assertEqual(clusters[concept], frozenset([frozenset(words_)]))
+
+        for concept in ['mountain', 'one', 'die']:
+            words_ = [word for word in words if word.concept == concept]
+            cog_set1 = frozenset([word for word in words_ if word.doculect != 'SAMAP'])
+            cog_set2 = frozenset([word for word in words_ if word.doculect == 'SAMAP'])
+            self.assertEqual(clusters[concept], frozenset([cog_set1, cog_set2]))
+
+    def test_write_clusters_with_kamasau(self):
+        dataset = Dataset('datasets/kamasau.tsv')
+        words = dataset.get_words()
+        clusters = dataset.get_clusters()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = os.path.join(temp_dir, 'clusters.tsv')
+
+            for dialect in csv.list_dialects():
+                write_clusters(clusters, path, dialect=dialect)
+
+                dataset_ = Dataset(path, dialect=dialect)
+                self.assertEqual(sorted(dataset_.get_words()), sorted(words))
+                self.assertEqual(dataset_.get_clusters(), clusters)
+
     @given(clusters())
     def test_get_words(self, clusters):
         words = [word for cog_sets in clusters.values()
