@@ -10,7 +10,8 @@ from unittest import TestCase
 from hypothesis.strategies import composite, integers, lists, sets, text
 from hypothesis import assume, given
 
-from online_cognacy_ident.dataset import DatasetError, Dataset, Word, write_clusters
+from online_cognacy_ident.dataset import (
+        Word, DatasetError, Dataset, PairsDataset, write_clusters)
 
 
 
@@ -165,3 +166,33 @@ class DatasetTestCase(TestCase):
 
             dataset = Dataset(path)
             self.assertEqual(dataset.get_clusters(), clusters)
+
+
+
+class PairsDatasetTestCase(TestCase):
+
+    MAYAN_DATASET = 'training_data/Mayan_asjp40_word_pairs.txt'
+
+    def test_init_with_bad_path(self):
+        with self.assertRaises(DatasetError) as cm:
+            PairsDataset('')
+
+        self.assertTrue(str(cm.exception).startswith('Could not find file'))
+
+    def test_init_with_bad_file(self):
+        path = os.path.abspath(__file__)
+        dataset = PairsDataset(path)
+
+        with self.assertRaises(DatasetError) as cm:
+            dataset.get_asjp_pairs()
+
+        self.assertTrue(str(cm.exception).startswith('Could not read file'))
+
+    def test_get_asjp_pairs_with_mayan(self):
+        dataset = PairsDataset(self.MAYAN_DATASET)
+
+        pairs = dataset.get_asjp_pairs()
+        self.assertEqual(len(pairs), 89787)
+
+        self.assertEqual(pairs[0], ('ta7', 'kata7'))
+        self.assertEqual(pairs[-1], ('ha7', 'ya7'))

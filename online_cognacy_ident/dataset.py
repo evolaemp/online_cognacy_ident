@@ -25,7 +25,8 @@ RECOGNISED_COLUMN_NAMES = {
 
 
 """
-The named tuple used in the return values of Dataset.get_*().
+The named tuple used in the return values of the get_words, get_concepts, and
+get_clusters methods of Dataset objects.
 """
 Word = namedtuple('Word', 'doculect, concept, asjp')
 
@@ -46,6 +47,7 @@ class Dataset:
     column names.
 
     Usage:
+
         try:
             dataset = Dataset(path)
             for concept, words in dataset.concepts():
@@ -296,6 +298,102 @@ class Dataset:
             clusters[concept].append(frozenset(cog_set))
 
         return {key: frozenset(value) for key, value in clusters.items()}
+
+
+
+class PairsDataset:
+    """
+    Handles the reading of datasets stored in the training_data dir. These are
+    tsv files comprising ASJP word pairs with their respective edit distances.
+
+    Usage:
+
+        try:
+            dataset = PairsDataset(path)
+            word_pairs = dataset.get_asjp_pairs()
+        except DatasetError as err:
+            print(err)
+    """
+
+    def __init__(self, path):
+        """
+        Set the instance's props. Raise a DatasetError if the given file path
+        does not exist.
+        """
+        if not os.path.exists(path):
+            raise DatasetError('Could not find file: {}'.format(path))
+
+        self.path = path
+        self.alphabet = None
+
+
+    def _read_pairs(self):
+        """
+        Generate the (asjp, asjp, edit distance) entries from the dataset.
+        Raise a DatasetError if there is a problem reading the file.
+        """
+        try:
+            with open(self.path, encoding='utf-8') as f:
+                reader = csv.reader(f, delimiter='\t')
+
+                for row in reader:
+                    yield row[0], row[1], float(row[2])
+
+        except OSError as err:
+            raise DatasetError('Could not open file: {}'.format(self.path))
+
+        except (IndexError, ValueError) as err:
+            raise DatasetError('Could not read file: {}'.format(self.path))
+
+
+    def get_alphabet(self):
+        """
+        Return a sorted list of all characters found throughout transcriptions
+        in the dataset. Raise a DatasetError if there is a problem.
+        """
+        if self.alphabet is not None:
+            return self.alphabet
+
+        self.alphabet = set()
+
+        for asjp1, asjp2, _ in self._read_pairs():
+            self.alphabet |= set(asjp1)
+            self.alphabet |= set(asjp2)
+
+        self.alphabet = sorted(self.alphabet)
+
+        return self.alphabet
+
+
+    def get_asjp_pairs(self, cutoff=1.0, as_int_tuples=False):
+        """
+        Return the list of the pairs of ASJP transcriptions from the dataset.
+
+        If the cutoff arg is less than 1.0, pairs with edit distance above that
+        threshold are also ignored. If the other keyword arg is set, return the
+        transcriptions as tuples of the letters' indices in self.alphabet.
+
+        Raise a DatasetError if there is an error reading the dataset file.
+        """
+        pairs = []
+
+        if as_int_tuples:
+            alphabet = self.get_alphabet()
+
+        for asjp1, asjp2, edit_distance in self._read_pairs():
+            if edit_distance > cutoff:
+                continue
+
+            if as_int_tuples:
+                pair = (
+                    tuple([alphabet.index(char) for char in asjp1]),
+                    tuple([alphabet.index(char) for char in asjp2]))
+            else:
+                pair = (asjp1, asjp2)
+
+            pairs.append(pair)
+
+        return pairs
 
 
 
