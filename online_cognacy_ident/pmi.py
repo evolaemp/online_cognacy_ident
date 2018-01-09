@@ -72,13 +72,20 @@ def calc_pmi(alignment_dict, char_list, scores, initialize=False):
 
 
 
-def train_pmi(word_pairs, alphabet, alpha=0.75, margin=1.0, max_iter=15, batch_size=256):
+def train_pmi(dataset, initial_cutoff=0.5, alpha=0.75, margin=1.0, max_iter=15, batch_size=256):
     """
-    Train the PMI dict mapping pairs of ASJP sounds to their PMI scores on word
+    Train a dict mapping pairs of ASJP sounds/chars to their PMI scores on word
     pairs using the EM algorithm with the specified parameters.
+
+    The first arg should be a Dataset or a PairsDataset instance providing the
+    word pairs that are potential cognates, i.e. having edit distance above the
+    given threshold/cutoff.
 
     This function is mostly sourced from PhyloStar's OnlinePMI repository.
     """
+    word_pairs = dataset.get_asjp_pairs(initial_cutoff)
+    alphabet = dataset.get_alphabet()
+
     pmidict = collections.defaultdict(float)
     num_updates = 0
 
@@ -112,19 +119,14 @@ def train_pmi(word_pairs, alphabet, alpha=0.75, margin=1.0, max_iter=15, batch_s
 
 
 
-def run_pmi(dataset, initial_cutoff=0.5, alpha=0.75, margin=1.0, max_iter=15, batch_size=256):
+def apply_pmi(dataset, pmi):
     """
     Run the PMI cognacy identification algorithm on a dataset.Dataset instance.
     Return a {(word, word): distance} dict mapping the dataset's word pairs to
     distance scores, the latter being in the range [0; 1].
 
-    The keyword args comprise the algorithm parameters.
+    The second argument should be a matrix as returned by the train_pmi func.
     """
-    word_pairs = dataset.get_asjp_pairs(initial_cutoff)
-    alphabet = dataset.get_alphabet()
-
-    pmi = train_pmi(word_pairs, alphabet, alpha, margin, max_iter, batch_size)
-
     scores = {}
 
     for concept, words in dataset.get_concepts().items():

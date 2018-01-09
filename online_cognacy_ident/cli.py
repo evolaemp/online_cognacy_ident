@@ -7,7 +7,7 @@ from online_cognacy_ident.clustering import cluster
 from online_cognacy_ident.dataset import Dataset, DatasetError, write_clusters
 from online_cognacy_ident.evaluation import calc_f_score
 from online_cognacy_ident.phmm import run_phmm
-from online_cognacy_ident.pmi import run_pmi
+from online_cognacy_ident.pmi import train_pmi, apply_pmi
 
 
 
@@ -125,8 +125,9 @@ class RunCli:
             scores = run_phmm(dataset, initial_cutoff=args.initial_cutoff,
                                 alpha=args.alpha, batch_size=args.batch_size)
         else:
-            scores = run_pmi(dataset, initial_cutoff=args.initial_cutoff,
+            pmi_matrix = train_pmi(dataset, initial_cutoff=args.initial_cutoff,
                                 alpha=args.alpha, batch_size=args.batch_size)
+            scores = apply_pmi(dataset, pmi_matrix)
 
         clusters = cluster(dataset, scores)
         write_clusters(clusters, args.output, args.dialect_output)
