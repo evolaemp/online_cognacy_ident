@@ -6,7 +6,7 @@ import time
 from online_cognacy_ident.clustering import cluster
 from online_cognacy_ident.dataset import Dataset, DatasetError, write_clusters
 from online_cognacy_ident.evaluation import calc_f_score
-from online_cognacy_ident.phmm import run_phmm
+from online_cognacy_ident.phmm import train_phmm, apply_phmm
 from online_cognacy_ident.pmi import train_pmi, apply_pmi
 
 
@@ -122,10 +122,13 @@ class RunCli:
             args.algorithm.upper(), args.dataset, 'IPA' if args.ipa else 'ASJP'))
 
         if args.algorithm == 'phmm':
-            scores = run_phmm(dataset, initial_cutoff=args.initial_cutoff,
+            em, gx, gy, trans = train_phmm(
+                                dataset, initial_cutoff=args.initial_cutoff,
                                 alpha=args.alpha, batch_size=args.batch_size)
+            scores = apply_phmm(dataset, em, gx, gy, trans)
         else:
-            pmi_matrix = train_pmi(dataset, initial_cutoff=args.initial_cutoff,
+            pmi_matrix = train_pmi(
+                                dataset, initial_cutoff=args.initial_cutoff,
                                 alpha=args.alpha, batch_size=args.batch_size)
             scores = apply_pmi(dataset, pmi_matrix)
 

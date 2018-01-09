@@ -18,9 +18,9 @@ def chunks(some_list, n):
     :return: Generator returning chunks of size n
     :rtype: list
     """
-
     for i in range(0, len(some_list), n):
         yield some_list[i:i + n]
+
 
 
 def merge(mat1, mat2, run, a):
@@ -37,70 +37,47 @@ def merge(mat1, mat2, run, a):
     :return: matrix or vector
     :rtype: numpy.core.ndarray
     """
-
     eta = np.power(run + 2, -a)
 
     return np.multiply(1 - eta, mat1) + np.multiply(eta, mat2)
 
 
-def training_wrapped(dataset):
+
+def model_ll(wordpairs, em, gx, gy, tr):
     """
-    This function wrapps Batch EM
-    :param dataset: dataset containing training data
-    :type dataset: online_cognacy_ident.dataset.Dataset
-    :return: trained parameters, emission matrix, gap x, gap y, Transition
-    :rtype: (np.core.ndarray, np.core.ndarray, np.core.ndarray, np.core.ndarray)
+    calculate model likelihood of phmm using the forward algorithm
+    :param wordpairs: list of wordpairs, number coded
+    :type wordpairs: list
+    :param em: Probabilities of sound correspondence, order as in alphabet
+    :type em: np.core.ndarray
+    :param gx: Probabilities of gaps in Seq1, order as in alphabet
+    :type gx: np.core.ndarray
+    :param gy: Probabilities of gaps in seq2, order as in alphabet
+    :type gy: np.core.ndarray
+    :param tr: Probabilities of state Transitions; order: delta, epsilon, lambda, tauM, tauXY
+    :type tr: np.core.ndarray
+    :return:
+    :rtype:
     """
-    alphabet = dataset.get_alphabet()
-    wordpairs = dataset.get_asjp_pairs(initial_cutoff, as_int_tuples=True)
-
-    # create storage for new parameters, include some pseudo counts to facilitate normalization
-    em_store = np.zeros((len(alphabet), len(alphabet)))
-    em_store[:] = 0.0001
-
-    g_store = np.zeros(len(alphabet))
-    g_store[:] = 0.0001
-
-    trans_store = np.array([10.0001, 10.0001, 0.0, 10.0001, 10.0001, 10.0001, 10.0001])
-
-    # create initial parameters
-    em_input = np.ones((len(alphabet), len(alphabet)))
-    em_input /= np.sum(em_input)
-
-    gx_input = np.ones(len(alphabet))
-    gx_input /= np.sum(gx_input)
-
-    gy_input = np.ones(len(alphabet))
-    gy_input /= np.sum(gy_input)
-
-    # delta, epsilon, lambda, taum, tauxy
-    trans_input = np.array([0.3, 0.3, 0.0, 0.1, 0.1])
-    converged = False
-    while converged is False:
-        model = PairHiddenMarkov(em_input, gx_input, gy_input, trans_input)
-        new_em, new_gx, new_gy, new_trans = model.baum_welch_train(list_of_seq=wordpairs,
-                                                                    new_em=em_store,
-                                                                    new_g_probs=g_store,
-                                                                    new_trans=trans_store)
-
-        results = [np.allclose(em_input, new_em), np.allclose(gx_input, new_gx),
-                   np.allclose(gy_input, new_gy), np.allclose(trans_input, new_trans)]
-
-        # new model parameters
-        em_input = new_em
-        gx_input = new_gx
-        gy_input = new_gy
-        trans_input = new_trans
-
-        if False not in results:
-            converged = True
-
-    return em_input, gy_input, gy_input, trans_input
+    sc = 0.0
+    ct = 0.0
+    model = PairHiddenMarkov(em, gx, gy, tr)
+    for seq1, seq2 in wordpairs:
+        if len(seq1) > 0 and len(seq2) > 0:
+            sc += model.forward(seq1, seq2)[1]
+            ct += 1
+    return sc/ct
 
 
-def training_wrapped_online(dataset, size, alpha, rt=0.0001, at=0.000001, con_check=False, initial_cutoff=0.5):
+
+def train_phmm(dataset, initial_cutoff=0.5, alpha=0.75, batch_size=256, rt=0.0001, at=0.000001, con_check=False):
     """
-    This function wraps the online EM training
+    Train a PHMM model using the EM algorithm with the specified parameters.
+
+    The first arg should be a Dataset or a PairsDataset instance providing the
+    word pairs that are potential cognates, i.e. having edit distance above the
+    given threshold/cutoff.
+
     :param con_check: Check convergence thorugh change in model likelihood if set to False. Use similarity in parameters
      otherwise. If set to True, convergence tends to be slower.
     :type con_check: bool
@@ -110,8 +87,8 @@ def training_wrapped_online(dataset, size, alpha, rt=0.0001, at=0.000001, con_ch
     :type at: float
     :param dataset: dataset containing training data
     :type dataset: online_cognacy_ident.dataset.Dataset
-    :param size: chunk size for online EM
-    :type size: int
+    :param batch_size: chunk size for online EM
+    :type batch_size: int
     :param alpha: update strength parameters
     :type alpha: float
     :param initial_cutoff: initial Levenshtein distance cutoff
@@ -151,7 +128,7 @@ def training_wrapped_online(dataset, size, alpha, rt=0.0001, at=0.000001, con_ch
     while converged is False:
 
         np.random.shuffle(wordpairs)
-        word_pairs = chunks(wordpairs, size)
+        word_pairs = chunks(wordpairs, batch_size)
 
         em_check = em_input
         gx_check = gx_input
@@ -193,36 +170,13 @@ def training_wrapped_online(dataset, size, alpha, rt=0.0001, at=0.000001, con_ch
     return em_input, gx_input, gy_input, trans_input
 
 
-def model_ll(wordpairs, em, gx, gy, tr):
-    """
-    calculate model likelihood of phmm using the forward algorithm
-    :param wordpairs: list of wordpairs, number coded
-    :type wordpairs: list
-    :param em: Probabilities of sound correspondence, order as in alphabet
-    :type em: np.core.ndarray
-    :param gx: Probabilities of gaps in Seq1, order as in alphabet
-    :type gx: np.core.ndarray
-    :param gy: Probabilities of gaps in seq2, order as in alphabet
-    :type gy: np.core.ndarray
-    :param tr: Probabilities of state Transitions; order: delta, epsilon, lambda, tauM, tauXY
-    :type tr: np.core.ndarray
-    :return:
-    :rtype:
-    """
-    sc = 0.0
-    ct = 0.0
-    model = PairHiddenMarkov(em, gx, gy, tr)
-    for seq1, seq2 in wordpairs:
-        if len(seq1) > 0 and len(seq2) > 0:
-            sc += model.forward(seq1, seq2)[1]
-            ct += 1
-    return sc/ct
 
-
-
-def alignment_wrapped(dataset, em, gx, gy, trans):
+def apply_phmm(dataset, em, gx, gy, trans):
     """
-    This function returns the alignment scores of the words in the data file
+    Run the PHMM cognacy identification algorithm on a Dataset instance. Return
+    a {(word, word): distance} dict mapping the dataset's synonymous word pairs
+    to distance scores, the latter being in the range [0; 1].
+
     :param dataset: dataset containing training data
     :type dataset: online_cognacy_ident.dataset.Dataset
     :param em: emission probabilities
@@ -258,18 +212,3 @@ def alignment_wrapped(dataset, em, gx, gy, trans):
             score_dict[key] = sigmoid(np.log(v_score / r_score))
 
     return score_dict
-
-
-
-def run_phmm(dataset, initial_cutoff=0.5, alpha=0.75, batch_size=256):
-    """
-    Run the PHMM cognacy identification algorithm on a Dataset instance. Return
-    a {(word, word): distance} dict mapping the dataset's synonymous word pairs
-    to distance scores, the latter being in the range [0; 1].
-
-    The keyword args comprise the algorithm parameters.
-    """
-    em, gx, gy, trans = training_wrapped_online(
-            dataset, batch_size, alpha, initial_cutoff=initial_cutoff)
-
-    return alignment_wrapped(dataset, em, gx, gy, trans)
