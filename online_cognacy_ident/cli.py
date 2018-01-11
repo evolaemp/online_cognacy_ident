@@ -4,7 +4,8 @@ import random
 import time
 
 from online_cognacy_ident.clustering import cluster
-from online_cognacy_ident.dataset import Dataset, DatasetError, write_clusters
+from online_cognacy_ident.dataset import (
+        Dataset, PairsDataset, DatasetError, write_clusters)
 from online_cognacy_ident.evaluation import calc_f_score
 from online_cognacy_ident.phmm import train_phmm, apply_phmm
 from online_cognacy_ident.pmi import train_pmi, apply_pmi
@@ -29,6 +30,135 @@ def number_in_interval(number, type, interval):
                 '{} not in interval [{}; {}]'.format(number, interval[0], interval[1]))
 
     return number
+
+
+
+class TrainCli:
+    """
+    Handles the user input, invokes the necessary functions, and takes care of
+    exiting the program for training pmi/phmm models.
+
+    Usage:
+        if __name__ == '__main__':
+            cli = TrainCli()
+            cli.run()
+    """
+
+    def __init__(self):
+        """
+        Init the argparse parser.
+        """
+        self.parser = argparse.ArgumentParser(add_help=False, description=(
+            'train a pmi or phmm model on a dataset'))
+
+        self.parser.add_argument(
+            'algorithm',
+            choices=['pmi', 'phmm'],
+            help='which of the two algorithms to use')
+        self.parser.add_argument(
+            'dataset',
+            help=(
+                'path to dataset of word pairs to train on; '
+                'this could be either a csv/tsv file (as in the datasets dir) '
+                'or a word pairs file (as in the training_data dir)'))
+        self.parser.add_argument(
+            'output',
+            help='path where to store the trained model')
+
+        algo_args = self.parser.add_argument_group('optional arguments - algorithm')
+        algo_args.add_argument(
+            '-c', '--initial-cutoff',
+            type=lambda x: number_in_interval(x, float, [0, 1]),
+            default=0.5,
+            help=(
+                'initial Levenshtein distance cutoff; '
+                'should be within the interval [0.0; 1.0]; '
+                'word pairs with normalised edit distance '
+                'above this threshold are ignored'))
+        algo_args.add_argument(
+            '-a', '--alpha',
+            type=lambda x: number_in_interval(x, float, [0.5, 1]),
+            default=0.75,
+            help=(
+                'α, EM hyperparameter; should be within the interval [0.5; 1]; '
+                'the default value is 0.75'))
+        algo_args.add_argument(
+            '-m', '--batch-size',
+            type=lambda x: number_in_interval(x, int, [1, float('inf')]),
+            default=256,
+            help=(
+                'm, EM hyperparameter; should be a positive integer; '
+                'the default value is 256'))
+        algo_args.add_argument(
+            '-r', '--random-seed',
+            type=int,
+            default=42,
+            help=(
+                'integer to use as seed for python\'s random module; '
+                'the default value is 42'))
+
+        io_args = self.parser.add_argument_group('optional arguments - input/output')
+        io_args.add_argument(
+            '--dataset-type',
+            choices=['standard', 'pairs'],
+            default='pairs',
+            help=(
+                'pairs (the default) refers to the specific format used '
+                'for the datasets in the training_data dir; '
+                'standard refers to the csv/tsv format used in '
+                'the datasets dir'))
+        io_args.add_argument(
+            '--csv-dialect',
+            choices=csv.list_dialects(),
+            help=(
+                'the csv dialect to use for reading the dataset; '
+                'the default is to look at the file extension '
+                'and use excel for .csv and excel-tab for .tsv'))
+        io_args.add_argument(
+            '-i', '--ipa',
+            action='store_true',
+            help=(
+                'convert input transcriptions from IPA to ASJP; '
+                'by default these are assumed to be ASJP'))
+
+        other_args = self.parser.add_argument_group('optional arguments - other')
+        other_args.add_argument(
+            '-h', '--help',
+            action='help',
+            help='show this help message and exit')
+
+
+    def run(self, raw_args=None):
+        """
+        Parse the given args (if these are None, default to parsing sys.argv,
+        which is what you would want unless you are unit testing).
+        """
+        args = self.parser.parse_args(raw_args)
+
+        random.seed(args.random_seed)
+        start_time = time.time()
+
+        try:
+            if args.dataset_type == 'pairs':
+                dataset = PairsDataset(args.dataset)
+            else:
+                dataset = Dataset(args.dataset, args.csv_dialect, args.ipa)
+        except DatasetError as err:
+            self.parser.error(str(err))
+
+        print('training {} on {} ({})'.format(
+            args.algorithm.upper(), args.dataset, 'IPA' if args.ipa else 'ASJP'))
+
+        if args.algorithm == 'phmm':
+            em, gx, gy, trans = train_phmm(
+                                dataset, initial_cutoff=args.initial_cutoff,
+                                alpha=args.alpha, batch_size=args.batch_size)
+        else:
+            pmi_matrix = train_pmi(
+                                dataset, initial_cutoff=args.initial_cutoff,
+                                alpha=args.alpha, batch_size=args.batch_size)
+
+        print('time elapsed: {:.2f} sec'.format(time.time() - start_time))
 
 
 
