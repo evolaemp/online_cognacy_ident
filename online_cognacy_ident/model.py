@@ -60,4 +60,4 @@ def load_model(path):
     if data['algorithm'] == 'pmi':
         return 'pmi', data['pmi']
     else:
-        return 'phmm', data['em'], data['gx'], data['gy'], data['trans']
+        return 'phmm', [data['em'], data['gx'], data['gy'], data['trans']]

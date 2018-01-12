@@ -7,6 +7,7 @@ from online_cognacy_ident.clustering import cluster
 from online_cognacy_ident.dataset import (
         Dataset, PairsDataset, DatasetError, write_clusters)
 from online_cognacy_ident.evaluation import calc_f_score
+from online_cognacy_ident.model import save_model, load_model, ModelError
 from online_cognacy_ident.phmm import train_phmm, apply_phmm
 from online_cognacy_ident.pmi import train_pmi, apply_pmi
 
@@ -58,7 +59,7 @@ class TrainCli:
         self.parser.add_argument(
             'dataset',
             help=(
-                'path to dataset of word pairs to train on; '
+                'path to a dataset to train on; '
                 'this could be either a csv/tsv file (as in the datasets dir) '
                 'or a word pairs file (as in the training_data dir)'))
         self.parser.add_argument(
@@ -149,14 +150,14 @@ class TrainCli:
         print('training {} on {} ({})'.format(
             args.algorithm.upper(), args.dataset, 'IPA' if args.ipa else 'ASJP'))
 
-        if args.algorithm == 'phmm':
-            em, gx, gy, trans = train_phmm(
-                                dataset, initial_cutoff=args.initial_cutoff,
-                                alpha=args.alpha, batch_size=args.batch_size)
-        else:
-            pmi_matrix = train_pmi(
-                                dataset, initial_cutoff=args.initial_cutoff,
-                                alpha=args.alpha, batch_size=args.batch_size)
+        train_func = train_phmm if args.algorithm == 'phmm' else train_pmi
+        model = train_func(
+                    dataset, initial_cutoff=args.initial_cutoff,
+                    alpha=args.alpha, batch_size=args.batch_size)
+        try:
+            save_model(args.output, args.algorithm, model)
+        except ModelError as err:
+            self.parser.error(str(err))
 
         print('time elapsed: {:.2f} sec'.format(time.time() - start_time))
 
@@ -180,57 +181,53 @@ class RunCli:
         """
         self.parser = argparse.ArgumentParser(add_help=False, description=(
             'run the pmi or phmm online cognacy identification algorithm '
-            'on the specified dataset'))
+            'on a dataset'))
 
-        self.parser.add_argument('algorithm', choices=['pmi', 'phmm'],
-                help='which of the two algorithms to use')
-        self.parser.add_argument('dataset', help='path to the dataset file')
-
-        algo_args = self.parser.add_argument_group('optional arguments - algorithm')
-        algo_args.add_argument('-c', '--initial-cutoff',
-            type=lambda x: number_in_interval(x, float, [0, 1]),
-            default=0.5, help=(
-                'initial Levenshtein distance cutoff; '
-                'should be within the interval [0.0; 1.0]; '
-                'word pairs with normalised edit distance '
-                'above this threshold are ignored'))
-        algo_args.add_argument('-a', '--alpha',
-            type=lambda x: number_in_interval(x, float, [0.5, 1]),
-            default=0.75, help=(
-                'α, EM hyperparameter; should be within the interval [0.5; 1]; '
-                'the default value is 0.75'))
-        algo_args.add_argument('-m', '--batch-size',
-            type=lambda x: number_in_interval(x, int, [1, float('inf')]),
-            default=256, help=(
-                'm, EM hyperparameter; should be a positive integer; '
-                'the default value is 256'))
-        algo_args.add_argument('-r', '--random-seed', type=int, default=42, help=(
-            'integer to use as seed for python\'s random module; '
-            'the default value is 42'))
+        self.parser.add_argument(
+            'model',
+            help='path to a trained model file')
+        self.parser.add_argument(
+            'dataset',
+            help='path to a dataset to run cognacy identification on')
 
         io_args = self.parser.add_argument_group('optional arguments - input/output')
-        io_args.add_argument('--dialect-input', choices=csv.list_dialects(), help=(
-            'the csv dialect to use for reading the dataset; '
-            'the default is to look at the file extension '
-            'and use excel for .csv and excel-tab for .tsv'))
-        io_args.add_argument('--dialect-output',
-            choices=csv.list_dialects(), default='excel-tab', help=(
+        io_args.add_argument(
+            '--dialect-input',
+            choices=csv.list_dialects(),
+            help=(
+                'the csv dialect to use for reading the dataset; '
+                'the default is to look at the file extension '
+                'and use excel for .csv and excel-tab for .tsv'))
+        io_args.add_argument(
+            '--dialect-output',
+            choices=csv.list_dialects(), default='excel-tab',
+            help=(
                 'the csv dialect to use for writing the output; '
                 'the default is excel-tab'))
-        io_args.add_argument('-o', '--output', help=(
-            'path where to write the identified cognate classes; '
-            'defaults to stdout'))
+        io_args.add_argument(
+            '-o', '--output',
+            help=(
+                'path where to write the identified cognate classes; '
+                'defaults to stdout'))
+        io_args.add_argument(
+            '-i', '--ipa',
+            action='store_true',
+            help=(
+                'convert input transcriptions from IPA to ASJP; '
+                'by default these are assumed to be ASJP'))
+        io_args.add_argument(
+            '-e', '--evaluate',
+            action='store_true',
+            help=(
+                'evaluate the output against the input dataset and '
+                'print the resulting F-score; this will fail '
+                'if the input dataset does not include cognate classes'))
 
         other_args = self.parser.add_argument_group('optional arguments - other')
-        other_args.add_argument('-h', '--help', action='help', help=(
-            'show this help message and exit'))
-        other_args.add_argument('-i', '--ipa', action='store_true', help=(
-            'convert input transcriptions from IPA to ASJP; '
-            'by default these are assumed to be ASJP'))
-        other_args.add_argument('-e', '--evaluate', action='store_true', help=(
-            'evaluate the output against the input dataset and '
-            'print the resulting F-score; this will fail '
-            'if the input dataset does not include cognate classes'))
+        other_args.add_argument(
+            '-h', '--help',
+            action='help',
+            help='show this help message and exit')
 
 
     def run(self, raw_args=None):
@@ -240,27 +237,21 @@ class RunCli:
         """
         args = self.parser.parse_args(raw_args)
 
-        random.seed(args.random_seed)
         start_time = time.time()
 
         try:
             dataset = Dataset(args.dataset, args.dialect_input, args.ipa)
-        except DatasetError as err:
+            algorithm, model = load_model(args.model)
+        except (DatasetError, ModelError) as err:
             self.parser.error(str(err))
 
         print('running {} on {} ({})'.format(
-            args.algorithm.upper(), args.dataset, 'IPA' if args.ipa else 'ASJP'))
+            algorithm.upper(), args.dataset, 'IPA' if args.ipa else 'ASJP'))
 
-        if args.algorithm == 'phmm':
-            em, gx, gy, trans = train_phmm(
-                                dataset, initial_cutoff=args.initial_cutoff,
-                                alpha=args.alpha, batch_size=args.batch_size)
-            scores = apply_phmm(dataset, em, gx, gy, trans)
+        if algorithm == 'phmm':
+            scores = apply_phmm(dataset, *model)
         else:
-            pmi_matrix = train_pmi(
-                                dataset, initial_cutoff=args.initial_cutoff,
-                                alpha=args.alpha, batch_size=args.batch_size)
-            scores = apply_pmi(dataset, pmi_matrix)
+            scores = apply_pmi(dataset, model)
 
         clusters = cluster(dataset, scores)
         write_clusters(clusters, args.output, args.dialect_output)

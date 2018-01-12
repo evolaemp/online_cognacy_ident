@@ -48,17 +48,14 @@ source meta/venv/bin/activate
 # ensure the reproducibility of the results
 export PYTHONHASHSEED=42
 
-# use run.py to invoke the commands
+# use train.py to train models
+python train.py --help
+
+# use run.py to apply trained models on datasets
 python run.py --help
 
-# run the pair hidden markov model algorithm
-python run.py phmm --ipa datasets/japanese.tsv --output output/japanese.tsv
-
-# run the pointwise mutual information algorithm
-python run.py pmi --ipa datasets/japanese.tsv --output output/japanese.tsv
-
-# evaluate the output
-python eval.py datasets/japanese.tsv output/japanese.tsv
+# use eval.py to evaluate the algorithms' output
+python eval.py --help
 ```
 
 A dataset should be in csv format. You can specify the csv dialect using the

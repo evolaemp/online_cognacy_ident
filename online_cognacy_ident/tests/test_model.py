@@ -52,9 +52,9 @@ class ModelTestCase(TestCase):
             save_model(path, 'phmm', [em, gx, gy, trans])
             model = load_model(path)
 
-        self.assertEqual(len(model), 5)
+        self.assertEqual(len(model), 2)
         self.assertEqual(model[0], 'phmm')
 
         for index, param in enumerate([em, gx, gy, trans]):
-            self.assertTrue(type(model[index+1]) is np.ndarray)
-            np.testing.assert_array_equal(model[index+1], param)
+            self.assertTrue(type(model[1][index]) is np.ndarray)
+            np.testing.assert_array_equal(model[1][index], param)
