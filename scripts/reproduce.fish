@@ -9,6 +9,7 @@ set -g training_dataset 'training_data/asjpv17_word_pairs.txt'
 set -g ipa_datasets abvd bai chinese_1964 chinese_2004 \
 					ielex japanese ob_ugrian tujia
 
+
 # train a model with certain hyperparameters, apply the model on a dataset and
 # evaluate the output against that dataset
 function train_run_eval
@@ -28,18 +29,23 @@ function train_run_eval
 		python train.py $algo \
 			$training_dataset \
 			$model_name \
-			--batch-size $batch_size --alpha $alpha
+			--batch-size $batch_size --alpha $alpha \
+			--time
 	end
 
 	python run.py $model_name \
 		datasets/$dataset.tsv $ipa_flag \
 		--output output/$algo/$dataset.tsv \
 		--evaluate
+
+	echo
 end
+
 
 # make sure these dirs exist
 mkdir -p models/pmi models/phmm
 mkdir -p output/pmi output/phmm
+
 
 # train+run+eval all datasets with the hyperparameters of table 4 of the paper
 train_run_eval abvd pmi 64 0.75

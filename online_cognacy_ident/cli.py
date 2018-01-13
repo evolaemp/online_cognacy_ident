@@ -127,6 +127,10 @@ class TrainCli:
             '-h', '--help',
             action='help',
             help='show this help message and exit')
+        other_args.add_argument(
+            '-t', '--time',
+            action='store_true',
+            help='show total training time at the end')
 
 
     def run(self, raw_args=None):
@@ -147,8 +151,9 @@ class TrainCli:
         except DatasetError as err:
             self.parser.error(str(err))
 
-        print('training {} on {} ({})'.format(
-            args.algorithm.upper(), args.dataset, 'IPA' if args.ipa else 'ASJP'))
+        print('training {} on {}, ipa→asjp={}, m={!s}, α={:.2f}'.format(
+                    args.algorithm.upper(), args.dataset,
+                    'yes' if args.ipa else 'no', args.batch_size, args.alpha))
 
         train_func = train_phmm if args.algorithm == 'phmm' else train_pmi
         model = train_func(
@@ -159,7 +164,8 @@ class TrainCli:
         except ModelError as err:
             self.parser.error(str(err))
 
-        print('time elapsed: {:.2f} sec'.format(time.time() - start_time))
+        if args.time:
+            print('training time: {:.2f} sec'.format(time.time() - start_time))
 
 
 
@@ -228,6 +234,10 @@ class RunCli:
             '-h', '--help',
             action='help',
             help='show this help message and exit')
+        other_args.add_argument(
+            '-t', '--time',
+            action='store_true',
+            help='show total running time at the end')
 
 
     def run(self, raw_args=None):
@@ -245,8 +255,8 @@ class RunCli:
         except (DatasetError, ModelError) as err:
             self.parser.error(str(err))
 
-        print('running {} on {} ({})'.format(
-            algorithm.upper(), args.dataset, 'IPA' if args.ipa else 'ASJP'))
+        print('running {} on {}, ipa→asjp={}'.format(
+                    args.model, args.dataset, 'yes' if args.ipa else 'no'))
 
         if algorithm == 'phmm':
             scores = apply_phmm(dataset, *model)
@@ -256,7 +266,8 @@ class RunCli:
         clusters = cluster(dataset, scores)
         write_clusters(clusters, args.output, args.dialect_output)
 
-        print('time elapsed: {:.2f} sec'.format(time.time() - start_time))
+        if args.time:
+            print('running time: {:.2f} sec'.format(time.time() - start_time))
 
         if args.evaluate:
             score = calc_f_score(dataset.get_clusters(), clusters)
