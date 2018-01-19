@@ -70,7 +70,7 @@ def model_ll(wordpairs, em, gx, gy, tr):
 
 
 
-def train_phmm(dataset, initial_cutoff=0.5, alpha=0.75, batch_size=256, rt=0.0001, at=0.000001, con_check=False):
+def train_phmm(dataset, initial_cutoff=0.5, alpha=0.75, batch_size=256, rt=0.0001, at=0.001, con_check=False):
     """
     Train a PHMM model using the EM algorithm with the specified parameters.
 

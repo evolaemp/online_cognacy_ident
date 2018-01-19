@@ -322,8 +322,8 @@ class PairHiddenMarkov(object):
         __delta__, __epsilon__, __lambd__, __tau_m__, __tau_x_y__ = self.trans_probs
 
         new_e_m = new_em[:].copy()
-        newgx_probs = new_g_probs[:].copy()
-        newgy_probs = new_g_probs[:].copy()
+        newg_probs = new_g_probs[:].copy()
+        #newgy_probs = new_g_probs[:].copy()
         new_trans_probs = new_trans[:].copy()
 
         new_delta, new_epsilon, new_lambd, new_tau_m, new_tau_x_y, extra_m, extra_x_y = new_trans_probs
@@ -349,8 +349,8 @@ class PairHiddenMarkov(object):
 
                     new_e_m[(x, y)] += inv_p * fw_ij[0] * bw_i1[j + 1][0]
                     new_e_m[(y, x)] += inv_p * fw_ij[0] * bw_i1[j + 1][0]
-                    newgx_probs[x] += inv_p * fw_ij[1] * bw_i1[j + 1][1]
-                    newgy_probs[y] += inv_p * fw_ij[2] * bw_i1[j + 1][2]
+                    newg_probs[x] += inv_p * fw_ij[1] * bw_i1[j + 1][1]
+                    newg_probs[y] += inv_p * fw_ij[2] * bw_i1[j + 1][2]
 
                     # calculate new transition probabilities
                     if (i != len(seq1) - 1) and (j != len(seq2) - 1):
@@ -377,8 +377,8 @@ class PairHiddenMarkov(object):
 
         # normalize values
         new_e_m /= np.sum(new_e_m)
-        newgx_probs /= np.sum(newgx_probs)
-        newgy_probs /= np.sum(newgy_probs)
+        newgx_probs = newg_probs/ np.sum(newg_probs)
+        newgy_probs = newg_probs/np.sum(newg_probs)
 
         trans_count = self.normalize_transition(trans_count)
 
